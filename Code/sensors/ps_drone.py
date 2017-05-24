@@ -1385,7 +1385,6 @@ def decode_Header(data):
 #Bit 16-23: USER_EL, TIMER_ELAPSED, MAGNETO_NEEDS_CALIB, ANGLES_OUT_OF_RANGE, WIND_MASK, ULTRASOUND_MASK, CUTOUT_MASK, PIC_VERSION_MASK
 #Bit 24-31: ATCODEC_THREAD_ON, NAVDATA_THREAD_ON, VIDEO_THREAD_ON, ACQ_THREAD_ON, CTRL_WATCHDOG_MASK, ADC_WATCHDOG_MASK, COM_WATCHDOG_MASK, EMERGENCY_MASK
 	stateBit = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-	gpsBit =   [0,0,0,0,1,0,1,1,1,0,0,1,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1]
 	stateBit[ 0] = data[1]    &1	#  0: FLY MASK :					(0) ardrone is landed, (1) ardrone is flying
 	stateBit[ 1] = data[1]>> 1&1	#  1: VIDEO MASK :					(0) video disable, (1) video enable
 	stateBit[ 2] = data[1]>> 2&1	#  2: VISION MASK :					(0) vision disable, (1) vision enable
@@ -1863,15 +1862,11 @@ def decode_ID27(packet):  #NAVDATA_ZIMU_3000_TAG
 	#return(zimmu_3000)
         ### MANUAL GPS PATCH
 	dataset = struct.unpack_from("IIddddI??ddddIdddddddddddddIdddddI", packet, offsetND)
-	#dataset = struct.unpack_from("IIfff", packet, offsetND)
-
         gps = []
         gps.append(dataset[11])
         gps.append(dataset[12])
         gps.append(dataset[13]) #??
-
         return(gps)
-        #return(dataset)
 
 ##### Footer ### "chksum" #####################################################
 def decode_Footer(packet,allpacket):   ### Decode Checksum options-package ID=65535
