@@ -1862,16 +1862,16 @@ def decode_ID27(packet):  #NAVDATA_ZIMU_3000_TAG
 	#zimmu_3000[1] = dataset[3]	# vzfind 			   								(float)
 	#return(zimmu_3000)
         ### MANUAL GPS PATCH
-	dataset = struct.unpack_from("IIffffI??ffffIfffffffffffffIfffff", packet, offsetND)
+	dataset = struct.unpack_from("IIddddI??ddddIdddddddddddddIdddddI", packet, offsetND)
 	#dataset = struct.unpack_from("IIfff", packet, offsetND)
 
-        gps = [500, 500, 0]
-        gps[0] = dataset[2]
-        gps[1] = dataset[3]
-        gps[2] = dataset[4]
+        gps = []
+        gps.append(dataset[11])
+        gps.append(dataset[12])
+        gps.append(dataset[13]) #??
 
-        #return(gps)
-        return(dataset)
+        return(gps)
+        #return(dataset)
 
 ##### Footer ### "chksum" #####################################################
 def decode_Footer(packet,allpacket):   ### Decode Checksum options-package ID=65535
