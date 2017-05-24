@@ -1385,6 +1385,7 @@ def decode_Header(data):
 #Bit 16-23: USER_EL, TIMER_ELAPSED, MAGNETO_NEEDS_CALIB, ANGLES_OUT_OF_RANGE, WIND_MASK, ULTRASOUND_MASK, CUTOUT_MASK, PIC_VERSION_MASK
 #Bit 24-31: ATCODEC_THREAD_ON, NAVDATA_THREAD_ON, VIDEO_THREAD_ON, ACQ_THREAD_ON, CTRL_WATCHDOG_MASK, ADC_WATCHDOG_MASK, COM_WATCHDOG_MASK, EMERGENCY_MASK
 	stateBit = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+	gpsBit =   [0,0,0,0,1,0,1,1,1,0,0,1,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1]
 	stateBit[ 0] = data[1]    &1	#  0: FLY MASK :					(0) ardrone is landed, (1) ardrone is flying
 	stateBit[ 1] = data[1]>> 1&1	#  1: VIDEO MASK :					(0) video disable, (1) video enable
 	stateBit[ 2] = data[1]>> 2&1	#  2: VISION MASK :					(0) vision disable, (1) vision enable
@@ -1853,13 +1854,24 @@ def decode_ID26(packet):		#NAVDATA_WIFI_TAG
 
 ##### ID = 27 ### "zimmu_3000" ################################################
 def decode_ID27(packet):  #NAVDATA_ZIMU_3000_TAG
-	dataset = struct.unpack_from("HHif", packet, offsetND)
-	if dataset[1] != 12 and dataset[1] != 216:		# 216 since firmware 2.4.8 ?
-		print "*** ERROR : navdata-zimmu_3000-Package (ID=27) has the wrong size !!!"
-	zimmu_3000 = [0,0.0]
-	zimmu_3000[0] = dataset[2]	# vzimmuLSB 			   							(int32)
-	zimmu_3000[1] = dataset[3]	# vzfind 			   								(float)
-	return(zimmu_3000)
+	#dataset = struct.unpack_from("HHif", packet, offsetND)
+	#if dataset[1] != 12 and dataset[1] != 216:		# 216 since firmware 2.4.8 ?
+	#	print "*** ERROR : navdata-zimmu_3000-Package (ID=27) has the wrong size !!!"
+	#zimmu_3000 = [0,0.0]
+	#zimmu_3000[0] = dataset[2]	# vzimmuLSB 			   							(int32)
+	#zimmu_3000[1] = dataset[3]	# vzfind 			   								(float)
+	#return(zimmu_3000)
+        ### MANUAL GPS PATCH
+	dataset = struct.unpack_from("IIffffI??ffffIfffffffffffffIfffff", packet, offsetND)
+	#dataset = struct.unpack_from("IIfff", packet, offsetND)
+
+        gps = [500, 500, 0]
+        gps[0] = dataset[2]
+        gps[1] = dataset[3]
+        gps[2] = dataset[4]
+
+        #return(gps)
+        return(dataset)
 
 ##### Footer ### "chksum" #####################################################
 def decode_Footer(packet,allpacket):   ### Decode Checksum options-package ID=65535
@@ -1923,7 +1935,8 @@ def getNavdata(packet,choice):
 		if dataset[0]==24 and choice[24]: navdata["kalman_pressure"]	= decode_ID24(packet[offsetND:])
 		if dataset[0]==25 and choice[25]: navdata["hdvideo_stream"]		= decode_ID25(packet[offsetND:])
 		if dataset[0]==26 and choice[26]: navdata["wifi"]				= decode_ID26(packet[offsetND:])
-		if dataset[0]==27 and choice[27]: navdata["zimmu_3000"]			= decode_ID27(packet[offsetND:])
+		#if dataset[0]==27 and choice[27]: navdata["zimmu_3000"]			= decode_ID27(packet[offsetND:])
+		if dataset[0]==27 and choice[27]: navdata["gps"]			= decode_ID27(packet[offsetND:])
 		if dataset[0]==65535 and choice[28]: navdata["chksum"]			= decode_Footer(packet[offsetND:],packet)
 		offsetND += dataset[1]
 	return(navdata)
@@ -1945,7 +1958,8 @@ def watchdogND(parentPID):
 def mainloopND(DroneIP,NavDataPort,parent_pipe,parentPID):
 	global commitsuicideND
 	something2send, MinimalPacketLength, timetag =	False, 30, 0
-	packetlist =		["demo","time","raw_measures","phys_measures","gyros_offsets","euler_angles","references","trims","rc_references","pwm","altitude","vision_raw","vision_of","vision","vision_perf","trackers_send","vision_detect","watchdog","adc_data_frame","video_stream","games","pressure_raw","magneto","wind_speed","kalman_pressure","hdvideo_stream","wifi","zimmu_3000","chksum","state"]
+	#packetlist =		["demo","time","raw_measures","phys_measures","gyros_offsets","euler_angles","references","trims","rc_references","pwm","altitude","vision_raw","vision_of","vision","vision_perf","trackers_send","vision_detect","watchdog","adc_data_frame","video_stream","games","pressure_raw","magneto","wind_speed","kalman_pressure","hdvideo_stream","wifi","zimmu_3000","chksum","state"]
+	packetlist =            ["demo","time","raw_measures","phys_measures","gyros_offsets","euler_angles","references","trims","rc_references","pwm","altitude","vision_raw","vision_of","vision","vision_perf","trackers_send","vision_detect","watchdog","adc_data_frame","video_stream","games","pressure_raw","magneto","wind_speed","kalman_pressure","hdvideo_stream","wifi","gps","chksum","state"]
 	choice =			[False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,True]
 	overallchoice =		False	# This and oneTimeFailOver is necessary because of a bug (?) of AR.Drone sending NavData in DemoMode...
 	oneTimeFailOver =	True 	# ...while setting a configuration the drone sends the next DemoMode-package with just its status.
