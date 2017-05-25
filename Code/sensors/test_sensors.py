@@ -1,4 +1,5 @@
 import os, ps_drone, select, sys, time
+from threading import Thread
 
 def get_nav(drone, packages):
     while any(package not in drone.NavData for package in packages):
@@ -22,8 +23,7 @@ def print_stat(drone):
     gps = nav_data["gps"]
     alt = nav_data["altitude"][0] #mm
     #wif = nav_data["wifi"]
-    print "acc: {}\ngyros: {}\nmag: {}\ngps x,y: {}\naltitude: {}m".format(
-            acc, gyr, mag, gps[:-1], alt/1000.0)
+    print "acc: {}\ngyros: {}\nmag: {}\ngps x,y: {}\naltitude: {}m".format(acc, gyr, mag, gps, alt/1000.0)
 
 def simple_flight(drone):
     drone.takeoff()
@@ -37,30 +37,23 @@ def simple_flight(drone):
 
 def drone_act(drone, in_list, com):
     if com == 'z':
-        drone.land()
         in_list.remove(file)
+    elif com == 'f':
+        Thread(target=simple_flight, args=(drone)).start()
+    elif com == 'w':
+        Thread(target=drone.moveForward, args=()).start()
+    elif com == 'a':
+        Thread(target=drone.moveLeft, args=()).start()
     elif com == 's':
-        simple_flight(drone)
+        Thread(target=drone.moveBackward, args=()).start()
     elif com == 'd':
-        hover_alt(drone)
+        Thread(target=drone.moveRight, args=()).start()
     return in_list
 
 def drone_init(drone):
     drone.startup()
     drone.reset()
-    time.sleep(0.1)
     drone.useDemoMode(False)
-    #drone.useDemoMode(True)
-    drone.setConfigAllID()
-    #drone.groundCam()
-    drone.frontCam()
-    drone.midVideo()
-    drone.sdVideo()
-    drone.addNDpackage(['altitude'])
-    CDC, NDC = drone.ConfigDataCount, drone.NavDataCount
-    while CDC == drone.ConfigDataCount: time.sleep(0.0001)
-    while NDC == drone.NavDataCount: time.sleep(0.0001)
-    while drone.getBattery()[0] == -1: time.sleep(0.01)
     print_bat(drone)
 
 def drone_cal(drone):
@@ -76,8 +69,8 @@ def drone_cal(drone):
 # script start
 drone = ps_drone.Drone()
 drone_init(drone)
-home = get_nav(drone, ["gps"])[:-1]
-drone_cal(drone)
+home = get_nav(drone, ["gps"])
+#drone_cal(drone)
 
 # piloted flight
 stop, read_list, timer = False, [sys.stdin], time.time()
@@ -88,15 +81,16 @@ try:
         if ready:
             for file in ready:
                 read_list = drone_act(drone, read_list, file.readline()[0])
-        if (time.time() - timer) >= 1:
-            print_stat(drone)
-            timer = time.time()
-        if (time.time() - timer) >= 15:
-            print_bat(drone)
-            timer = time.time()
+#        if (time.time() - timer) >= 1:
+#            print_stat(drone)
+#            timer = time.time()
+#        if (time.time() - timer) >= 15:
+#            print_bat(drone)
+#            timer = time.time()
 
 except KeyboardInterrupt as e:
     print e
     
-# drone has shut down, print battery and status
+# drone shutting down, print battery and status
 print_bat(drone)
+drone.shutdown()
