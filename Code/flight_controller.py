@@ -1,12 +1,35 @@
 from Tkinter import *
 import ps_drone
+import time
 
-# Drone flight_controller
 
-class Controller():
+'''
+	D.F.C.-Drone Flight Controller
+
+	Read stdin from user input, place in buffer.
+	Read from buffer the commands to control drone
+	Drone movements will be executed using Absolute
+	movement function from PS_DRONE API.
 	
-	def take_off():
-		print "Clicked takeoff"
+	Function definition:
+		def move(self, leftright, backwardforward, downup, turnleftright)
+	Values between 0 - 1.0 either positive or negative.
+
+	First iteration: 
+		Instantiate drone object to communicate with drone(Functional throughout all iterations)
+		Controller window: 
+			Start button (initial flight startup)
+			Stop button (land, shutdown)
+
+
+'''
+
+
+class DroneController():
+	
+	
+
+
 
 	def stop_moving():
 		print "Stop moving"
@@ -30,31 +53,36 @@ class Controller():
 		print "Turn right"
 
 
+	def __init__(self,master):
+		self.master = master
+		master.title("D.F.C. - Drone Flight Controller")
 
-	main = Tk()
-	main.title("D.F.C. - Drone Flight Controller")
-	frame = Frame(main)
-	frame.pack()	
+		self.label = Label(master, text="Simple Controller!")
+		self.label.pack()
 
-	main.bind('<space>', take_off())
-	main.bind('0', stop_moving())
-	main.bind('w', move_forward())
-	main.bind('s', move_backward())
-	main.bind('a', move_left())
-	main.bind('d', move_right())
-	main.bind('q', turn_left())
-	main.bind('e', turn_right())
+		self.take_off = Button(master, text="Launch", bg='green', command=self.take_off)
+		self.take_off.pack()
+
+		self.close_button = Button(master, text="Shutdown", command=master.quit)
+		self.close_button.pack()
+
+	def take_off(self):
+		print "Clicked takeoff"
 
 
-	main.mainloop()
-
-class DroneINIT():
-	drone = ps_drone.Drone()
-	#drone.startup()
-
-	Controller()
-
+main = Tk()
+drone_control = DroneController(main)
+main.mainloop()
 
 
 if __name__ == "__main__":
-	DroneINIT()	
+	drone = ps_drone.Drone()
+	#drone.startup()
+
+	#drone.reset()
+	#drone.useDemoMode(False)
+	time.sleep(0.5)
+	print "Drone Controller accessing..."
+		
+
+	
