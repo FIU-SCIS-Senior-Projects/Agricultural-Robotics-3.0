@@ -1,4 +1,4 @@
-from Tkinter import *
+import Tkinter as tk
 import ps_drone
 import time
 
@@ -26,63 +26,62 @@ import time
 
 
 class DroneController():
-	
-	
+
+	#def stop_moving():
+	#	print "Stop moving"
+
+	#def move_forward():
+	#	print "Move forward"
+
+	#def move_backward():
+	#	print "Move backward"
+
+	#def move_left():
+	#	print "Move left"
+
+	#def move_right():
+	#	print "Move right"
+
+	#def turn_left():
+	#	print "Turn left"
+
+	#def turn_right():
+	#	print "Turn right"
 
 
+	def __init__(self,root):
+		self.root = root
+		self.root.title("D.F.C. - Drone Flight Controller")
 
-	def stop_moving():
-		print "Stop moving"
-
-	def move_forward():
-		print "Move forward"
-
-	def move_backward():
-		print "Move backward"
-
-	def move_left():
-		print "Move left"
-
-	def move_right():
-		print "Move right"
-
-	def turn_left():
-		print "Turn left"
-
-	def turn_right():
-		print "Turn right"
-
-
-	def __init__(self,master):
-		self.master = master
-		master.title("D.F.C. - Drone Flight Controller")
-
-		self.label = Label(master, text="Simple Controller!")
+		self.label = tk.Label(root, text="Drone Controller")
 		self.label.pack()
 
-		self.take_off = Button(master, text="Launch", bg='green', command=self.take_off)
+		self.take_off = tk.Button(self.root, text="Launch", command=self.take_off)
 		self.take_off.pack()
 
-		self.close_button = Button(master, text="Shutdown", command=master.quit)
-		self.close_button.pack()
+		self.shutdown = tk.Button(self.root, text="Shutdown", command=self.shutdown)
+		self.shutdown.pack()
+
+		self.quit_button = tk.Button(self.root, text="Quit GUI", command=root.quit)
+		self.quit_button.pack()
 
 	def take_off(self):
-		print "Clicked takeoff"
+		print "Launch in process..."
+
+	def shutdown(self):
+		print "Shutdown in process..."
+
+	def quit_GUI(self):
+		print "Exiting GUI"
+
+def main():
+	root = tk.Tk()
+	drone_GUI = DroneController(root)
+	root.mainloop()
+
+main()
 
 
-main = Tk()
-drone_control = DroneController(main)
-main.mainloop()
-
-
-if __name__ == "__main__":
-	drone = ps_drone.Drone()
-	#drone.startup()
-
-	#drone.reset()
-	#drone.useDemoMode(False)
-	time.sleep(0.5)
-	print "Drone Controller accessing..."
 		
 
 	
