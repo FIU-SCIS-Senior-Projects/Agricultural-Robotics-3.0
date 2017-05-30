@@ -4,6 +4,8 @@ quitting = False
 dry_run = False
 
 def get_nav(drone, packages):
+    # Poll for new NavData until all requested packages
+    # are present in a single transmission.
     while any(package not in drone.NavData for package in packages):
         NDC = drone.NavDataCount
         drone.getNDpackage(packages)
@@ -11,6 +13,8 @@ def get_nav(drone, packages):
     return drone.NavData
 
 def drone_cal(drone):
+    # Basic gyroscope and magnetometer recalibration.
+    # Requires 10 seconds of hovering flight.
     if dry_run: print "drone.trim()"
     else: drone.trim()
     time.sleep(5)
@@ -24,7 +28,7 @@ def drone_cal(drone):
     else: drone.land()
 
 def print_bat(drone):
-    # print battery
+    # Poll for valid battery status and print it.
     battery = drone.getBattery()
     while battery[0] == -1:
         time.sleep(0.1)
@@ -32,6 +36,7 @@ def print_bat(drone):
     drone.printBlue("Battery: {}% {}".format(battery[0], battery[1]))
 
 def get_stat(drone):
+    # Return list of human-readable sensor data.
     packages = ["gps", "magneto", "raw_measures", "altitude"]
     nav_data = get_nav(drone, packages)
     acc = nav_data["raw_measures"][0]
@@ -46,7 +51,8 @@ def get_stat(drone):
     return [acc, gyr, mag, deg, gps[:-1], (alt/1000.0)]
 
 def time_stat(drone):
-    # status-printing timer
+    # Timed printing of sensor data for testing.
+    # This is only used in a threaded process.
     global quitting
     old_stats = [0, 0, 0, 0, 0, 0]
     counter, timer = 0, time.time()
@@ -73,6 +79,7 @@ def time_stat(drone):
     return 0
 
 def simple_flight(drone):
+    # An 8-second flight where it moves forward then lands.
     if dry_run: print "drone.takeoff()"
     else: drone.takeoff()
     time.sleep(5)
@@ -88,6 +95,8 @@ def simple_flight(drone):
     else: drone.land()
 
 def drone_act(drone, in_list, com):
+    # Check character 'com' for valid command,
+    # otherwise ignore it.
     if com == 'z':
         in_list.remove(in_list[0])
         drone.shutdown()
@@ -111,6 +120,7 @@ def drone_act(drone, in_list, com):
     return in_list
 
 def drone_init(drone):
+    # Drone initialization steps
     drone.startup()
     drone.reset()
     drone.useDemoMode(False)
@@ -120,16 +130,18 @@ def main():
     global quitting
     drone = ps_drone.Drone()
     drone_init(drone)
+
+    # Get home GPS coordinates.
     home = get_nav(drone, ["gps"])["gps"][:-1]
     print "Home: {}".format(home)
     drone_cal(drone)
     
-    # start printing threads
+    # Call sensor printing thread.
     stats = Thread(target=time_stat, args=([drone]))
     stats.setDaemon(True)
     stats.start()
     
-    # piloted flight
+    # Begin watching input for flight commands.
     read_list = [sys.stdin]
     while read_list:
         # get keypress and act
@@ -138,7 +150,7 @@ def main():
             for f in ready:
                 read_list = drone_act(drone, read_list, f.readline()[0])
     
-    # drone shutting down, print battery and status
+    # Clean shutdown, close printing thread, print battery.
     quitting = True
     print_bat(drone)
 
