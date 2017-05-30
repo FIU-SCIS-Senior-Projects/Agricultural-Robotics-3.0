@@ -25,7 +25,7 @@ import time
 '''
 
 
-class DroneController():
+class DroneController(object):
 
 	#def stop_moving():
 	#	print "Stop moving"
@@ -49,7 +49,15 @@ class DroneController():
 	#	print "Turn right"
 
 
-	def __init__(self,root):
+	def __init__(self,root,drone):
+
+		self.drone = drone
+		print self.drone
+		self.drone.startup()
+		self.drone.reset()
+		self.drone.useDemoMode(False)
+		time.sleep(0.5)
+
 		self.root = root
 		self.root.title("D.F.C. - Drone Flight Controller")
 
@@ -64,9 +72,12 @@ class DroneController():
 
 		self.quit_button = tk.Button(self.root, text="Quit GUI", command=root.quit)
 		self.quit_button.pack()
+		
 
 	def take_off(self):
 		print "Launch in process..."
+		print self.drone
+		#self.drone.takeoff()
 
 	def shutdown(self):
 		print "Shutdown in process..."
@@ -75,8 +86,9 @@ class DroneController():
 		print "Exiting GUI"
 
 def main():
+	drone = ps_drone.Drone()		#Drone object
 	root = tk.Tk()
-	drone_GUI = DroneController(root)
+	drone_GUI = DroneController(root, drone)
 	root.mainloop()
 
 main()
