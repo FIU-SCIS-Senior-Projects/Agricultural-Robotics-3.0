@@ -8,23 +8,23 @@ quitting = False    # global for printing thread
 
 def get_stat(drone):
     # Return list of human-readable sensor data.
-    packages = ["gps", "magneto", "raw_measures", "altitude"]
-    nav_data = get_nav(drone, packages)
+    nav_data = self.get_nav(self.packages)
 
     # Straightforward data
     acc = nav_data["raw_measures"][0]
     gyr = nav_data["raw_measures"][1]
-    gps = nav_data["gps"]
-    alt = nav_data["altitude"][0] #mm
+    gps = nav_data["gps"][:-1]      # not using altitude value
+
+    # Convert altitude to meters
+    alt = nav_data["altitude"][0]   # mm
+    alt = alt / 1000.0              # m
 
     # Turn magnetometer data into heading (degrees)
-    mag = nav_data["magneto"][0]
-    #mag_avg = [-28, -13, -43]
-    #for i in range(len(mag)): mag[i] -= mag_avg[i]
-    #deg = (math.atan2(mag[1], mag[0]) * 180) / math.pi
-    deg = math.atan2(mag[1], mag[0])
+    mag = nav_data["magneto"][0][:-1] # not using z value
+    for i in range(len(mag)): mag[i] -= self.mag_avg[i]
+    deg = -1 * (math.atan2(mag[1], mag[0]) * 180) / math.pi
 
-    return [acc, gyr, mag, deg, gps[:-1], (alt/1000.0)]
+    return [acc, gyr, mag, deg, alt]
 
 def get_nav(drone, packages):
     # Poll for new NavData until all requested packages
