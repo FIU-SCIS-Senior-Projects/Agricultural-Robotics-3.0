@@ -7,20 +7,16 @@ class Sensor:
     def __init__(self, drone):
         self.drone = drone
         self.mag_avg = [-24.285714, -35.047619] # Manually calculated
-        self.packages = ["altitude", "gps", "magneto", "raw_measures"]
 
-    def get_nav(self, package_list):
-        # Poll for specific NavData until all requested packages
-        # are present in a single transmission.
-        while any(package not in self.drone.NavData for package in package_list):
-            NDC = self.drone.NavDataCount
-            self.drone.getNDpackage(package_list)
-            while self.drone.NavDataCount == NDC: time.sleep(0.05)
+    def get_nav(self):
+        # Poll for NavData until fresh packages are received
+        NDC = self.drone.NavDataCount
+        while self.drone.NavDataCount == NDC: time.sleep(0.01)
         return self.drone.NavData
     
     def get_stat(self):
         # Return list of human-readable sensor data.
-        nav_data = self.get_nav(self.packages)
+        nav_data = self.get_nav()
     
         # Straightforward data
         acc = nav_data["raw_measures"][0]
@@ -36,7 +32,7 @@ class Sensor:
         for i in range(len(mag)): mag[i] -= self.mag_avg[i]
         deg = -1 * (math.atan2(mag[1], mag[0]) * 180) / math.pi
     
-        return [acc, gyr, mag, deg, alt]
+        return [acc, gyr, mag, deg, gps, alt]
     
     def cal_mag(self):
         # Rotates the drone to acquire mag data to normalize.
