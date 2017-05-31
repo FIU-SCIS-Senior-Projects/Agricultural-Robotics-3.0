@@ -1,8 +1,8 @@
-import os, ps_drone, select, sys, time, math
+import os, ps_drone, select, sys, time, math, thread
 from threading import Thread
 
 ACC = 6             # magnetometer normalization accuracy; higher = better
-P_TIME = 1.5        # time to wait between sensor data readings
+P_TIME = 0.1        # time to wait between sensor data readings
 DRY_RUN = True      # debug mode, prints flight commands rather than fly
 quitting = False    # global for printing thread
 
@@ -74,34 +74,29 @@ def time_stat(drone):
     # This is only used in a threaded process.
     global quitting
     old_stats = [0, 0, 0, 0, 0, 0]
-    timer = time.time()
-    stat_timer, old_timer = timer, timer
+    timer, counter = time.time(), 0
+    stat_timer, old_time = timer, timer
     while not quitting:
         curr_time = time.time()
 
         # Print new sensor data every P_TIME seconds
         if (curr_time - stat_timer > P_TIME):
-            stats = get_stat(drone)
+            curr_stats = get_stat(drone)
+            print "counter: {}".format(counter)
             print "acc: {}\ngyr: {}\nmag: {}".format(
-                    stats[0], stats[1], stats[2])
+                    curr_stats[0], curr_stats[1], curr_stats[2])
             print "deg: {}\ngps: {}\nalt: {}m\n\n".format(
-                    stats[3], stats[4], stats[5])
+                    curr_stats[3], curr_stats[4], curr_stats[5])
 
-            # Check for bad readings and perform a calibration if so.
-            if stats == old_stats:
-                if curr_time - old_timer < 60:
+            # Check for bad magnetometer and shut down if so.
+            if curr_stats[2] == old_stats[2]:
+                if curr_time - old_time > 10:
                     drone.shutdown()
-                    print "Sensor error"
-                    return 1
-                if DRY_RUN: print "drone.land()"
-                else: drone.land()
-                if DRY_RUN: print "time.sleep(10)"
-                else: time.sleep(10)
-                cal_drone(drone)
-                old_timer = curr_time
+                    thread.interrupt_main()
+                old_time = curr_time
             stat_timer = curr_time
-            old_stats = stats
-    return 0
+            old_stats = curr_stats
+            counter += 1
 
 def simple_flight(drone):
     # An 8-second flight where it moves forward then lands.
@@ -142,6 +137,9 @@ def drone_act(drone, in_list, com):
     elif com == 'x':
         if DRY_RUN: print "Thread(target=drone.hover, args=()).start()"
         else: Thread(target=drone.hover, args=()).start()
+    elif com == 'c':
+        if DRY_RUN: print "Thread(target=cal_drone, args=(drone,)).start()"
+        else: Thread(target=cal_drone, args=(drone,)).start()
     return in_list
 
 def drone_init(drone):
@@ -160,7 +158,6 @@ def main():
     # Get home GPS coordinates.
     home = get_nav(drone)["gps"][:-1]
     print "Home: {}".format(home)
-    cal_drone(drone)
     
     # Call sensor printing thread.
     stats = Thread(target=time_stat, args=(drone,))
