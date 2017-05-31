@@ -10,12 +10,12 @@ class Sensor:
         self.packages = ["altitude", "gps", "magneto", "raw_measures"]
 
     def get_nav(self, package_list):
-        # Poll for new NavData until all requested packages
+        # Poll for specific NavData until all requested packages
         # are present in a single transmission.
         while any(package not in self.drone.NavData for package in package_list):
             NDC = self.drone.NavDataCount
             self.drone.getNDpackage(package_list)
-            while self.drone.NavDataCount == NDC: time.sleep(0.001)
+            while self.drone.NavDataCount == NDC: time.sleep(0.05)
         return self.drone.NavData
     
     def get_stat(self):
@@ -38,8 +38,9 @@ class Sensor:
     
         return [acc, gyr, mag, deg, alt]
     
-    def get_mag(self):
+    def cal_mag(self):
         # Rotates the drone to acquire mag data to normalize.
+        # UNTESTED
         mag_x, mag_y = [], []
         for i in range(ACC):
             mag = self.get_nav(["magneto"])["magneto"]
@@ -49,9 +50,8 @@ class Sensor:
             time.sleep(2)
         self.mag_avg[0] = reduce(lambda x, y: x + y, mag_x) / len(mag_x)
         self.mag_avg[1] = reduce(lambda x, y: x + y, mag_y) / len(mag_y)
-        return self.mag_avg
     
-    def drone_cal(self):
+    def cal_drone(self):
         # Basic gyroscope and magnetometer recalibration.
         # Requires 10 seconds of hovering flight.
         self.drone.trim()
