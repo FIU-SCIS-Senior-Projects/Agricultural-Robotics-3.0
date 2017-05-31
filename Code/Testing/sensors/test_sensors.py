@@ -5,11 +5,11 @@ ACC = 6             # magnetometer normalization accuracy; higher = better
 P_TIME = 1.5        # time to wait between sensor data readings
 DRY_RUN = True      # debug mode, prints flight commands rather than fly
 quitting = False    # global for printing thread
-mag_avg = [-24.285714, -35.047619] # Manually calculated
 
 def get_stat(drone):
     # Return list of human-readable sensor data.
-    nav_data = self.get_nav(self.packages)
+    nav_data = get_nav(self.packages)
+    mag_avg = [-24.285714, -35.047619] # Manually calculated
 
     # Straightforward data
     acc = nav_data["raw_measures"][0]
@@ -22,7 +22,7 @@ def get_stat(drone):
 
     # Turn magnetometer data into heading (degrees)
     mag = nav_data["magneto"][0][:-1] # not using z value
-    for i in range(len(mag)): mag[i] -= self.mag_avg[i]
+    for i in range(len(mag)): mag[i] -= mag_avg[i]
     deg = -1 * (math.atan2(mag[1], mag[0]) * 180) / math.pi
 
     return [acc, gyr, mag, deg, alt]
@@ -30,7 +30,6 @@ def get_stat(drone):
 def get_nav(drone, packages):
     # Poll for new NavData until all requested packages
     # are present in a single transmission.
-    #while any(package not in drone.NavData for package in packages) or not drone.NoNavData:
     while any(package not in drone.NavData for package in packages):
         NDC = drone.NavDataCount
         drone.getNDpackage(packages)
