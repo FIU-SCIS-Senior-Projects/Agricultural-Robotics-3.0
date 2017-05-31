@@ -5,6 +5,7 @@ ACC = 6             # magnetometer normalization accuracy; higher = better
 P_TIME = 1.5        # time to wait between sensor data readings
 DRY_RUN = True      # debug mode, prints flight commands rather than fly
 quitting = False    # global for printing thread
+mag_avg = [-24.285714, -35.047619] # Manually calculated
 
 def get_stat(drone):
     # Return list of human-readable sensor data.
