@@ -1,57 +1,52 @@
-import os, ps_drone, select, sys, time, math
+import os, ps_drone, select, sys, time, math, thread
 from threading import Thread
 
 ACC = 6             # magnetometer normalization accuracy; higher = better
-P_TIME = 1.5        # time to wait between sensor data readings
+P_TIME = 0.1        # time to wait between sensor data readings
 DRY_RUN = True      # debug mode, prints flight commands rather than fly
 quitting = False    # global for printing thread
 
 def get_stat(drone):
     # Return list of human-readable sensor data.
-    packages = ["gps", "magneto", "raw_measures", "altitude"]
-    nav_data = get_nav(drone, packages)
+    nav_data = get_nav(drone)
+    mag_avg = [-24.285, -35.047] # Manually calculated
 
     # Straightforward data
     acc = nav_data["raw_measures"][0]
     gyr = nav_data["raw_measures"][1]
-    gps = nav_data["gps"]
-    alt = nav_data["altitude"][0] #mm
+    gps = nav_data["gps"][:-1]      # not using altitude value
+
+    # Convert altitude to meters
+    alt = nav_data["altitude"][0]   # mm
+    alt = alt / 1000.0              # m
 
     # Turn magnetometer data into heading (degrees)
-    mag = nav_data["magneto"][0]
-    #mag_avg = [-28, -13, -43]
-    #for i in range(len(mag)): mag[i] -= mag_avg[i]
-    #deg = (math.atan2(mag[1], mag[0]) * 180) / math.pi
-    deg = math.atan2(mag[1], mag[0])
+    mag = nav_data["magneto"][0][:-1] # not using z value
+    for i in range(len(mag)): mag[i] -= mag_avg[i]
+    deg = -1 * (math.atan2(mag[1], mag[0]) * 180) / math.pi
 
-    return [acc, gyr, mag, deg, gps[:-1], (alt/1000.0)]
+    return [acc, gyr, mag, deg, gps, alt]
 
-def get_nav(drone, packages):
-    # Poll for new NavData until all requested packages
-    # are present in a single transmission.
-    #while any(package not in drone.NavData for package in packages) or not drone.NoNavData:
-    while any(package not in drone.NavData for package in packages):
-        NDC = drone.NavDataCount
-        drone.getNDpackage(packages)
-        while drone.NavDataCount == NDC: time.sleep(0.001)
+def get_nav(drone):
+    NDC = drone.NavDataCount
+    while drone.NavDataCount == NDC: time.sleep(0.01)
     return drone.NavData
 
-def get_mag(drone):
+def cal_mag(drone):
     # Rotates the drone to acquire mag data to normalize.
-    mag_x, mag_y, mag_z, mag_avg = [], [], [], []
+    # NOT TESTED
+    mag_x, mag_y, mag_avg = [], [], []
     for i in range(ACC):
-        mag = get_nav(["magneto"])["magneto"]
+        mag = get_nav(drone)["magneto"]
         mag_x.append(mag[0])
         mag_y.append(mag[1])
-        mag_z.append(mag[2])
         drone.turnAngle((360.0 / ACC), 0.5)
         time.sleep(2)
     mag_avg.append(reduce(lambda x, y: x + y, mag_x) / len(mag_x))
     mag_avg.append(reduce(lambda x, y: x + y, mag_y) / len(mag_y))
-    mag_avg.append(reduce(lambda x, y: x + y, mag_z) / len(mag_z))
     return mag_avg
 
-def drone_cal(drone):
+def cal_drone(drone):
     # Basic gyroscope and magnetometer recalibration.
     # Requires 10 seconds of hovering flight.
     if DRY_RUN: print "drone.trim()"
@@ -79,34 +74,29 @@ def time_stat(drone):
     # This is only used in a threaded process.
     global quitting
     old_stats = [0, 0, 0, 0, 0, 0]
-    timer = time.time()
-    stat_timer, old_timer = timer, timer
+    timer, counter = time.time(), 0
+    stat_timer, old_time = timer, timer
     while not quitting:
         curr_time = time.time()
 
         # Print new sensor data every P_TIME seconds
         if (curr_time - stat_timer > P_TIME):
-            stats = get_stat(drone)
-            print "acc: {}\ngyros: {}\nmag: {}\
-                    \ndeg: {}\ngps x,y: {}\naltitude: {}m".format(
-                    stats[0], stats[1], stats[2],
-                    stats[3], stats[4], stats[5])
+            curr_stats = get_stat(drone)
+            print "counter: {}".format(counter)
+            print "acc: {}\ngyr: {}\nmag: {}".format(
+                    curr_stats[0], curr_stats[1], curr_stats[2])
+            print "deg: {}\ngps: {}\nalt: {}m\n\n".format(
+                    curr_stats[3], curr_stats[4], curr_stats[5])
 
-            # Check for bad readings and perform a calibration if so.
-            if stats == old_stats:
-                if curr_time - old_timer < 60:
+            # Check for bad magnetometer and shut down if so.
+            if curr_stats[2] == old_stats[2]:
+                if curr_time - old_time > 10:
                     drone.shutdown()
-                    print "Sensor error"
-                    return 1
-                if DRY_RUN: print "drone.land()"
-                else: drone.land()
-                if DRY_RUN: print "time.sleep(10)"
-                else: time.sleep(10)
-                drone_cal(drone)
-                old_timer = curr_time
+                    thread.interrupt_main()
+                old_time = curr_time
             stat_timer = curr_time
-            old_stats = stats
-    return 0
+            old_stats = curr_stats
+            counter += 1
 
 def simple_flight(drone):
     # An 8-second flight where it moves forward then lands.
@@ -131,7 +121,7 @@ def drone_act(drone, in_list, com):
         in_list.remove(in_list[0])
         drone.shutdown()
     elif com == 'f':
-        Thread(target=simple_flight, args=([drone])).start()
+        Thread(target=simple_flight, args=(drone,)).start()
     elif com == 'w':
         if DRY_RUN: print "Thread(target=drone.moveForward, args=()).start()"
         else: Thread(target=drone.moveForward, args=()).start()
@@ -147,6 +137,9 @@ def drone_act(drone, in_list, com):
     elif com == 'x':
         if DRY_RUN: print "Thread(target=drone.hover, args=()).start()"
         else: Thread(target=drone.hover, args=()).start()
+    elif com == 'c':
+        if DRY_RUN: print "Thread(target=cal_drone, args=(drone,)).start()"
+        else: Thread(target=cal_drone, args=(drone,)).start()
     return in_list
 
 def drone_init(drone):
@@ -154,6 +147,7 @@ def drone_init(drone):
     drone.startup()
     drone.reset()
     drone.useDemoMode(False)
+    drone.getNDpackage(["altitude", "gps", "magneto", "raw_measures"])
     print_bat(drone)
 
 def main():
@@ -162,12 +156,11 @@ def main():
     drone_init(drone)
 
     # Get home GPS coordinates.
-    home = get_nav(drone, ["gps"])["gps"][:-1]
+    home = get_nav(drone)["gps"][:-1]
     print "Home: {}".format(home)
-    drone_cal(drone)
     
     # Call sensor printing thread.
-    stats = Thread(target=time_stat, args=([drone]))
+    stats = Thread(target=time_stat, args=(drone,))
     stats.setDaemon(True)
     stats.start()
     
