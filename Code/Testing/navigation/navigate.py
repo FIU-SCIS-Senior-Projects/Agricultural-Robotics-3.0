@@ -1,80 +1,83 @@
 import math, select, sys, time
 from ps_drone import Drone
-from sensors import Sensor
+from navigator import Navigator
+from threading import Thread
 
-home = [25.758984, -80.373743]
-gps_target = [25.758847, -80.374646]
+#home = [25.758984, -80.373743]
+gps_target = [25.758889, -80.374701]
+tar_threshold = 2.0
+landing = False
 
-def get_dist(x, y):
-    r = 6371e3
-    phi1 = math.radians(x[0])
-    phi2 = math.radians(y[0])
-    dphi = math.radians(y[0] - x[0])
-    dlam = math.radians(y[1] - x[1])
 
-    a = math.sin(dphi / 2) * math.sin(dphi / 2)
-    a += math.cos(phi1) * math.cos(phi2) * (math.sin(dlam / 2) * math.sin(dlam / 2))
-    return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-def goto(drone, sensors, target):
+def goto(drone, navigator):
     at_target = False
-    while not at_target:
-        curr_pos = sensors.get_nav()["gps"][:-1]
-        tar_dist = get_dist(curr_pos, target)
-    #    tar_angle = get_angle()
-    #
-    #    if tar_dist < tar_threshold:
-    #        drone.hover()
-    #        drone.land()
-    #        at_target = True
-    #
-    #    else:
-    #        forward = compute_forward()
-    #        turning = compute_turn()
-    #
-    #    drone.move(forward, turning)
+    while not at_target and not landing:
+        print "getting move"
+        move = navigator.get_move()
 
-def drone_act(drone, in_list, com):
+        tar_dist = move[-1]
+        print "dist: {}".format(tar_dist)
+        if tar_dist < tar_threshold:
+            drone.hover()
+            time.sleep(1)
+            drone.land()
+            at_target = True
+        else:
+            drone.move(*move[:-1])
+            print "moving: {}".format(move[:-1])
+        time.sleep(1)
+    print "arrived"
+
+def drone_act(drone, navigator, in_list, com):
     # Check character 'com' for valid command,
     # otherwise ignore it.
-    global home, gps_target
+    global home, home_heading, gps_target
     if com == 'z':
         in_list.remove(in_list[0])
         drone.shutdown()
     elif com == 't':
-        get_dist(home, gps_target)
+        drone.takeoff()
+    elif com == 'd':
+        print navigator.get_deg()
+    elif com == 'c':
+        navigator.calibrate_drone(True)
+    elif com == 'm':
+        print navigator.get_mag()
+    elif com == 'g':
+        moving = Thread(target=goto, args=(drone, navigator))
+        moving.daemon = True
+        moving.start()
     return in_list
 
-def print_bat(drone):
-    # Poll for valid battery status and print it.
+def battery(drone):
+    # Poll for valid battery status and return string
     battery = drone.getBattery()
     while battery[0] == -1:
         time.sleep(0.1)
         battery = drone.getBattery()
-    drone.printBlue("Battery: {}% {}".format(battery[0], battery[1]))
+    return "Battery: {}% {}".format(battery[0], battery[1])
 
 def drone_init(drone):
     # Drone startup
     drone.startup()
     drone.reset()
 
-    # NavData packages
-    drone.useDemoMode(False)
-    drone.getNDpackage(["altitude", "gps", "magneto", "raw_measures"])
-
     # Print battery
-    print_bat(drone)
+    print battery(drone)
 
 def main():
-    # Initialize drone and sensors
+    # Initialize drone and navigator
     global home
     drone = Drone()
+    print "initializing"
     drone_init(drone)
-    sensors = Sensor(drone)
+    print "setting up nav"
+    navigator = Navigator(drone)
+    print "setting target"
+    navigator.set_target(gps_target)
 
     # Get home GPS coordinates.
-    #home = sensors.get_nav()["gps"][:-1]
-    print "Home: {}".format(home)
+    print "Home: {}".format(navigator.get_home())
     
     # Begin watching input for flight commands.
     read_list = [sys.stdin]
@@ -83,9 +86,9 @@ def main():
         ready = select.select(read_list, [], [], 0.1)[0]
         if ready:
             for f in ready:
-                read_list = drone_act(drone, read_list, f.readline()[0])
+                read_list = drone_act(drone, navigator, read_list, f.readline()[0])
 
     # Done, print battery
-    print_bat(drone)
+    print battery(drone)
     
 main()
