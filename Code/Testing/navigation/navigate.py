@@ -10,6 +10,7 @@ landing = False
 
 
 def goto(drone, navigator):
+    global landing
     at_target = False
     while not at_target and not landing:
         print "getting move"
@@ -26,13 +27,15 @@ def goto(drone, navigator):
             drone.move(*move[:-1])
             print "moving: {}".format(move[:-1])
         time.sleep(1)
-    print "arrived"
+    print "landed"
 
 def drone_act(drone, navigator, in_list, com):
     # Check character 'com' for valid command,
     # otherwise ignore it.
-    global home, home_heading, gps_target
+    #global home, home_heading
+    global landing
     if com == 'z':
+        landing = True
         in_list.remove(in_list[0])
         drone.shutdown()
     elif com == 't':
@@ -40,7 +43,7 @@ def drone_act(drone, navigator, in_list, com):
     elif com == 'd':
         print navigator.get_deg()
     elif com == 'c':
-        navigator.calibrate_drone(True)
+        navigator.calibrate_drone()
     elif com == 'm':
         print navigator.get_mag()
     elif com == 'g':
