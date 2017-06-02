@@ -12,21 +12,22 @@ landing = False
 def goto(drone, navigator):
     global landing
     at_target = False
-    while not at_target and not landing:
+    while not landing:
         print "getting move"
         move = navigator.get_move()
-
-        tar_dist = move[-1]
+        movement = move[0]
+        tar_dist = move[1]
         print "dist: {}".format(tar_dist)
+
         if tar_dist < tar_threshold:
             drone.hover()
-            time.sleep(1)
             drone.land()
-            at_target = True
+            landing = True
         else:
-            drone.move(*move[:-1])
-            print "moving: {}".format(move[:-1])
-        time.sleep(1)
+            print "moving: {}".format(movement)
+            motion = [3].append(movement)
+            drone.at("PCMD", motion)
+            time.sleep(2)
     print "landed"
 
 def drone_act(drone, navigator, in_list, com):
