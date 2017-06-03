@@ -126,7 +126,7 @@ class Navigator:
         elif angle_turn < -10.0: move_speed, turn_speed = 0.0,  HARD_TURN
         elif angle_turn > 0: move_speed, turn_speed = 0.5, -SOFT_TURN
         elif angle_turn < 0: move_speed, turn_speed = 0.5,  SOFT_TURN
-        else: turn_speed = 0.0
+        else: move_speed, turn_speed = 0.5, 0.0
 
         # Return movement list and distance to target
         return ([move_speed, 0.0, 0.0, turn_speed], self.__tar_dist)

@@ -13,7 +13,6 @@ def goto(drone, navigator):
     global landing
     at_target = False
     while not landing:
-        print "getting move"
         move = navigator.get_move()
         movement = move[0]
         tar_dist = move[1]
@@ -25,15 +24,12 @@ def goto(drone, navigator):
             landing = True
         else:
             print "moving: {}".format(movement)
-            motion = [3].append(movement)
-            drone.at("PCMD", motion)
+            drone.move(movement)
             time.sleep(2)
-    print "landed"
 
 def drone_act(drone, navigator, in_list, com):
     # Check character 'com' for valid command,
     # otherwise ignore it.
-    #global home, home_heading
     global landing
     if com == 'z':
         landing = True
@@ -41,16 +37,16 @@ def drone_act(drone, navigator, in_list, com):
         drone.shutdown()
     elif com == 't':
         drone.takeoff()
-    elif com == 'd':
-        print navigator.get_deg()
     elif com == 'c':
         navigator.calibrate_drone()
-    elif com == 'm':
-        print navigator.get_mag()
     elif com == 'g':
         moving = Thread(target=goto, args=(drone, navigator))
         moving.daemon = True
         moving.start()
+    elif com == 'd':
+        print navigator.get_deg()
+    elif com == 'm':
+        print navigator.get_mag()
     return in_list
 
 def battery(drone):
@@ -62,25 +58,18 @@ def battery(drone):
     return "Battery: {}% {}".format(battery[0], battery[1])
 
 def drone_init(drone):
-    # Drone startup
     drone.startup()
     drone.reset()
-
-    # Print battery
-    print battery(drone)
 
 def main():
     # Initialize drone and navigator
     global home
     drone = Drone()
-    print "initializing"
     drone_init(drone)
-    print "setting up nav"
+    print battery(drone)
     navigator = Navigator(drone)
-    print "setting target"
+    time.sleep(0.5)
     navigator.set_target(gps_target)
-
-    # Get home GPS coordinates.
     print "Home: {}".format(navigator.get_home())
     
     # Begin watching input for flight commands.
@@ -92,7 +81,4 @@ def main():
             for f in ready:
                 read_list = drone_act(drone, navigator, read_list, f.readline()[0])
 
-    # Done, print battery
-    print battery(drone)
-    
 main()
