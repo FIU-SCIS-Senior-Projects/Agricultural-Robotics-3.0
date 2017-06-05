@@ -1,4 +1,7 @@
 import itertools, ps_drone, time, math
+from threading import Thread
+import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 
 class Navigator:
     """Navigator interface of an AR Drone 2.0"""
@@ -28,7 +31,7 @@ class Navigator:
         self.__sensors = Thread(target=self.__sensors_collect, args=())
         self.__sensors.daemon = True
         self.__sensors.start()
-        time.sleep(0.1)
+        time.sleep(3)
 
         # Get current GPS for "home" location
         self.__set_stats()
@@ -63,12 +66,18 @@ class Navigator:
             deg.append(item["deg"])
 
         # Remove outliers
-        acc_proc = list(itertools.compress(acc, is_outlier(acc)))
-        gyr_proc = list(itertools.compress(gyr, is_outlier(gyr)))
-        gps_proc = list(itertools.compress(gps, is_outlier(gps)))
-        alt_proc = list(itertools.compress(alt, is_outlier(alt)))
-        mag_proc = list(itertools.compress(mag, is_outlier(mag)))
-        deg_proc = list(itertools.compress(deg, is_outlier(deg)))
+        acc_proc = list(itertools.compress(
+            acc, self.__is_outlier(np.array(acc))))
+        gyr_proc = list(itertools.compress(gyr,
+            self.__is_outlier(np.array(gyr))))
+        gps_proc = list(itertools.compress(gps,
+            self.__is_outlier(np.array(gps))))
+        alt_proc = list(itertools.compress(alt,
+            self.__is_outlier(np.array(alt))))
+        mag_proc = list(itertools.compress(mag,
+            self.__is_outlier(np.array(mag))))
+        deg_proc = list(itertools.compress(deg,
+            self.__is_outlier(np.array(deg))))
 
         # Check that lists are populated
         if not acc_proc: acc_proc = acc
@@ -79,14 +88,14 @@ class Navigator:
         if not deg_proc: deg_proc = deg
 
         # Average the remainder of the lists
-        self.__stats["acc"] = reduce(lambda x, y: x + y, acc) / len(acc)
-        self.__stats["gyr"] = reduce(lambda x, y: x + y, gyr) / len(gyr)
-        self.__stats["gps"] = reduce(lambda x, y: x + y, gps) / len(gps)
-        self.__stats["alt"] = reduce(lambda x, y: x + y, alt) / len(alt)
-        self.__stats["mag"] = reduce(lambda x, y: x + y, mag) / len(mag)
-        self.__stats["deg"] = reduce(lambda x, y: x + y, deg) / len(deg)
+        self.__stats["acc"] = reduce(lambda x, y: x + y, np.array(acc_proc)) / len(acc_proc)
+        self.__stats["gyr"] = reduce(lambda x, y: x + y, np.array(gyr_proc)) / len(gyr_proc)
+        self.__stats["gps"] = reduce(lambda x, y: x + y, np.array(gps_proc)) / len(gps_proc)
+        self.__stats["alt"] = reduce(lambda x, y: x + y, np.array(alt_proc)) / len(alt_proc)
+        self.__stats["mag"] = reduce(lambda x, y: x + y, np.array(mag_proc)) / len(mag_proc)
+        self.__stats["deg"] = reduce(lambda x, y: x + y, np.array(deg_proc)) / len(deg_proc)
 
-    def is_outlier(points, thresh=3.5):
+    def __is_outlier(self, points, thresh=3.5):
         """
         Returns a boolean array with True if points are outliers and False 
         otherwise.
@@ -115,7 +124,8 @@ class Navigator:
         diff = np.sqrt(diff)
         med_abs_deviation = np.median(diff)
     
-        modified_z_score = 0.6745 * diff / med_abs_deviation
+        try: modified_z_score = 0.6745 * diff / med_abs_deviation
+        except: pass
     
         return modified_z_score > thresh
 
