@@ -19,6 +19,7 @@ def goto(drone, navigator):
         print "dist: {}".format(tar_dist)
 
         if tar_dist < tar_threshold:
+            print "landing"
             drone.hover()
             drone.land()
             landing = True
@@ -47,6 +48,8 @@ def drone_act(drone, navigator, in_list, com):
         print navigator.get_deg()
     elif com == 'm':
         print navigator.get_mag()
+    elif com == 'a':
+        print navigator.get_all()
     return in_list
 
 def battery(drone):
