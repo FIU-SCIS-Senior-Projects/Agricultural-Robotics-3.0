@@ -6,7 +6,7 @@ from itertools import islice
 from subprocess import Popen, PIPE
 from textwrap import dedent
 from threading import Thread  
-import ScrolledText as tkst
+
 
 
 '''
@@ -45,99 +45,148 @@ class dcMainApp(object):
 
 	def __init__(self,root,drone):
 
-		#Drone 
+		######################################Variables########################################################	
+		battstat = StringVar()		# battery variable for battery status display
+		battstat.set(' ')		
+
+		test = BooleanVar()
+		test.set(False)
+
+		userIn = StringVar()		# input variable for command keys
+		#controltext='''Control keys: \n"7": turnAngle(-10,1) \n"9": turnAngle( 10,1)\n"4": turnAngle(-45,1) \n"6": turnAngle( 45,1) \n"1": turnAngle(-90,1) \n"3": turnAngle( 90,1) \n"*": doggyHop() \n"+": doggyNod() \n"-": doggyWag()'''
+
+		#########################################Drone Object##################################################
 		self.drone = drone
 		#self.drone.startup()
 		#self.drone.reset()
-		#self.drone.useDemoMode(False)
-		time.sleep(0.5)
-			
 
-		#GUI 
+		#self.drone.useDemoMode(False)
+		#self.drone.getNDpackage(["demo"])
+		time.sleep(0.5)
+
+
+		#GUI Object instance 
 		self.root = root
 		self.root.title("D.F.C. - Drone Flight Controller")
 
 	
-		#Main frame
-		self.frame = tk.Frame(self.root, background="lightgrey")
-		self.frame.grid(row=0, column=0, columnspan=30, rowspan=30)
-		self.frame.config(width=900, height=600)
+		######################################Main GUI Window##################################################
+		self.startupside1 = tk.Frame(self.root)
+		self.startupside1.grid(row=0, column=0, columnspan=2, rowspan=30)
+		self.startupside1.config(width=400, height=600, background="lightgrey")
 
+		self.controllerside = tk.Frame(self.root, background="lightslategrey")
+		self.controllerside.config(width=500, height=600)
+		self.controllerside.grid(row=0, column=3, columnspan=30, rowspan=30)
+
+
+		###################################Drone startup/shutdown##############################################	
 		
+		self.takeoff = tk.Button(self.root, text="Launch", highlightbackground="lightslategrey", command=self.take_off)
+		self.takeoff.config(width=9,font=('Arial',12,'bold'))
+		self.takeoff.grid(row=4, column=6)
 
-		userIn = StringVar()		# input variable for command keys
-		controltext='''Type key into textbox and press enter.\nControl keys: \n"7": turnAngle(-10,1) \n"9": turnAngle( 10,1)\n"4": turnAngle(-45,1) \n"6": turnAngle( 45,1) \n"1": turnAngle(-90,1) \n"3": turnAngle( 90,1) \n"*": doggyHop() \n"+": doggyNod() \n"-": doggyWag()'''
+		self.drone_land = tk.Button(self.root, text="Land", highlightbackground="lightslategrey",command=self.d_land)
+		self.drone_land.config(width=9,font=('Arial',12,'bold'))
+		self.drone_land.grid(row=4, column=12)
 
+		self.shutdown = tk.Button(self.root, text="Shutdown", highlightbackground="lightslategrey", command=self.shutdown)
+		self.shutdown.config(width=9,font=('Arial',12,'bold'))
+		self.shutdown.grid(row=8, column=6)
 
-		self.battlabel = tk.Label(self.root, text="Battery: ", bg="lightgrey")
-		self.battlabel.grid(row=0, column=0)
+		self.battlabel = tk.Button(self.root,text="Battery",highlightbackground="lightslategrey", command=self.batt_status)
+		self.battlabel.config(width=9,font=('Arial',12,'bold'))
+		self.battlabel.grid(row=8, column=12)
+
+		self.quit_button = tk.Button(self.root, text="Quit GUI", highlightbackground="lightslategrey", command=self.quit)
+		self.quit_button.config(width=9, font=('Arial',12,'bold'))
+		self.quit_button.grid(row=26,column=12)
 		
-		self.take_off = tk.Button(self.root, text="Launch", highlightbackground="lightgrey", command=self.take_off)
-		self.take_off.config(width=7)
-		self.take_off.grid(row=4, column=3)
+		####################################Control pad########################################################
 
-		self.drone_land = tk.Button(self.root, text="Land", highlightbackground="lightgrey", command=self.d_land)
-		self.drone_land.config(width=7)
-		self.drone_land.grid(row=5, column=3)
+		####################################Forward/Backward Controls##########################################
+		
+		self.dr_Control = tk.Label(self.root, text="Flight\nController", bg="lightslategrey")
+		self.dr_Control.config(font=('Arial',24,'bold'), fg='black')
+		self.dr_Control.grid(row=1, column=10)
 
-		self.shutdown = tk.Button(self.root, text="Shutdown", highlightbackground="lightgrey", command=self.shutdown)
-		self.shutdown.config(width=7)
-		self.shutdown.grid(row=6, column=3)
+		self.drone_moveup = tk.Button(self.root, text="Move Up", highlightbackground="lightslategrey",command=self.d_moveup)
+		self.drone_moveup.config(width=10,font=('Arial',12,'bold'))
+		self.drone_moveup.grid(row=4,column=10)	
 
-		self.quit_button = tk.Button(self.root, text="Quit GUI", highlightbackground="lightgrey", command=root.quit)
-		self.quit_button.config(width=7)
-		self.quit_button.grid(row=7,column=3)
+		self.drone_forward = tk.Button(self.root, text="Forward", highlightbackground="lightslategrey",command=self.d_forward)
+		self.drone_forward.config(width=10,font=('Arial',12,'bold'))
+		self.drone_forward.grid(row=5, column=10)
 
-		# Control pad
-		self.drone_hover = tk.Button(self.root, text="Hover", highlightbackground="lightgrey", command=self.d_hover)
-		self.drone_hover.config(width=12)
-		self.drone_hover.grid(row=5, column=18)
+		self.drone_hover = tk.Button(self.root, text="Hover", highlightbackground="lightslategrey",command=self.d_hover)
+		self.drone_hover.config(width=10,font=('Arial',12,'bold'))
+		self.drone_hover.grid(row=6, column=10)
 
-		self.drone_forward = tk.Button(self.root, text="Forward", highlightbackground="lightgrey", command=self.d_forward)
-		self.drone_forward.config(width=10)
-		self.drone_forward.grid(row=4, column=18)
+		self.drone_back = tk.Button(self.root, text="Backward", highlightbackground="lightslategrey",command=self.d_backward)
+		self.drone_back.config(width=10,font=('Arial',12,'bold'))
+		self.drone_back.grid(row=7, column=10)
+	
+		self.drone_movedown = tk.Button(self.root, text="MoveDown", highlightbackground="lightslategrey",command=self.d_movedown)
+		self.drone_movedown.config(width=10,font=('Arial',12,'bold'))
+		self.drone_movedown.grid(row=8,column=10)
 
-		self.drone_back = tk.Button(self.root, text="Backward", highlightbackground="lightgrey", command=self.d_backward)
-		self.drone_back.config(width=10)
-		self.drone_back.grid(row=6, column=18)
+		####################################Left/Right Controls################################################
 
-		self.drone_left = tk.Button(self.root, text="Left ", highlightbackground="lightgrey", command=self.d_left)
-		self.drone_left.config(width=4)
-		self.drone_left.grid(row=5,column=17)		
+		self.drone_turnleft = tk.Button(self.root, text="TurnLeft ", highlightbackground="lightslategrey",command=self.d_turnleft)
+		self.drone_turnleft.config(width=9,font=('Arial',12,'bold'))
+		self.drone_turnleft.grid(row=6, column=6)
+		
+		self.drone_left = tk.Button(self.root, text="Left ", highlightbackground="lightslategrey",command=self.d_left)
+		self.drone_left.config(width=4,font=('Arial',12,'bold'))
+		self.drone_left.grid(row=6,column=7)		
 
-		self.drone_right = tk.Button(self.root, text="Right", highlightbackground="lightgrey", command=self.d_right)
-		self.drone_right.config(width=4)
-		self.drone_right.grid(row=5,column=19)
+		self.drone_right = tk.Button(self.root, text="Right", highlightbackground="lightslategrey",command=self.d_right)
+		self.drone_right.config(width=4,font=('Arial',12,'bold'))
+		self.drone_right.grid(row=6,column=11)
 
-		self.drone_turnleft = tk.Button(self.root, text="Turn Left ", highlightbackground="lightgrey", command=self.d_turnleft)
-		self.drone_turnleft.grid(row=5, column=16)
+		self.drone_turnright = tk.Button(self.root, text="TurnRight", highlightbackground="lightslategrey",command=self.d_turnright)
+		self.drone_turnright.config(width=9,font=('Arial',12,'bold'))
+		self.drone_turnright.grid(row=6, column=12)
+		
+		#######################################Drone Video Feed################################################
 
-		self.drone_turnright = tk.Button(self.root, text="Turn Right", highlightbackground="lightgrey", command=self.d_turnright)
-		self.drone_turnright.grid(row=5, column=20)
+		self.dr_VFLabel1 = tk.Label(self.root, text="Video\nFeed", bg="lightgrey", anchor='w')
+		self.dr_VFLabel1.config(font=('Arial',24,'bold'), fg="black")
+		self.dr_VFLabel1.grid(row=1, column=1)	
 
-		self.drone_moveup = tk.Button(self.root, text="Move Up", highlightbackground="lightgrey", command=self.d_moveup)
-		self.drone_moveup.config(width=8)
-		self.drone_moveup.grid(row=3,column=18)		
+		self.dr_VFLabel1 = tk.Canvas(self.root, width=300, height=200, bg="black")
+		self.dr_VFLabel1.grid(row=2, column=1)	
 
-		self.drone_movedown = tk.Button(self.root, text="Move Down", highlightbackground="lightgrey", command=self.d_movedown)
-		self.drone_movedown.config(width=8)
-		self.drone_movedown.grid(row=7,column=18)	
 
+		self.vs_on = tk.Button(self.root, text="Video On", highlightbackground="lightgrey")
+		self.vs_on.config(width=9,font=('Arial',12,'bold'))
+		self.vs_on.grid(row=3, column=1)
+
+		self.vs_off = tk.Button(self.root, text="Video Off", highlightbackground="lightgrey")
+		self.vs_off.config(width=9,font=('Arial',12,'bold'))
+		self.vs_off.grid(row=4, column=1)
+
+		#######################################################################################################
 
 		#Text input
-		self.user_Entry = tk.Entry(self.root, textvariable=userIn, highlightbackground="lightgrey") 
-		self.user_Entry.grid(row=9,column=0)
 
-		self.ueButton = StringVar()
-		self.ueButton.set("Send Command")
+		self.user_Entry = tk.Label(self.root, text="Drone\nCommand", bg="lightgrey")
+		self.user_Entry.grid(row=10, column=1)
+		self.user_Entry.config(font=('Arial',14, 'bold'))
+		self.user_EntryBox = tk.Entry(self.root, textvariable=userIn, highlightbackground="lightgrey")
+		self.user_EntryBox.config(width=10) 
+		self.user_EntryBox.grid(row=11,column=1)
+
+#		self.ueButton = StringVar()
+#		self.ueButton.set("Send Command")
 		
-		self.button = tk.Button(self.root, textvariable=self.ueButton, highlightbackground="lightgrey", command=self.commandinput)
-		self.button.grid(row=10, column=0)
+#		self.button = tk.Button(self.root, textvariable=self.ueButton, highlightbackground="lightgrey", command=self.commandinput)
+#		self.button.grid(row=10, column=0)
 		
 
 		#self.canvastext = tk.Label(self.frame,text=controltext, font=("Helvetica",10), fg="red", anchor=W, justify=LEFT)
 		#self.canvastext.grid(row=11, column=0)
-		'''
+		
 		#generic process to generate output. stdout to gui
 		#self.process = Popen([sys.executable, "-u", "-c", dedent("""
 		#	import itertools, time
@@ -147,74 +196,67 @@ class dcMainApp(object):
 		#		time.sleep(0.1)
 		#	""")], stdout=PIPE)
 		
-		self.process = Popen(['python', /Agricultural-Robotics-3.0/Code/flight_controller.py], stdout=self.process.PIPE,stderr=self.process.STDOUT,)	
-		for line in iter(self.process.stdout.readline, ''):	
-			print("%s") % line	
+#		self.process = Popen(['python', /Agricultural-Robotics-3.0/Code/flight_controller.py], stdout=self.process.PIPE,stderr=self.process.STDOUT,)	
+#		for line in iter(self.process.stdout.readline, ''):	
+#			print("%s") % line	
 
-		q = Queue(maxsize=1024)
-		t = Thread(target=self.reader_thread, args=[q])
-		t.daemon = True
-		t.start()
+#		q = Queue(maxsize=1024)
+#		t = Thread(target=self.reader_thread, args=[q])
+#		t.daemon = True
+#		t.start()
 	
 		#stdout to gui 
-	def reader_thread(self, q):
-		try:
-			with self.process.stdout as pipe:
-				for line in iter(pipe.readline, b''):
-					q.put(line)
-		finally:
-			q.put(None)
+#	def reader_thread(self, q):
+#		try:
+#			with self.process.stdout as pipe:
+#				for line in iter(pipe.readline, b''):
+#					q.put(line)
+#		finally:
+#			q.put(None)
 
 
-		#stdout to gui
-	def update(self, q):
-		for line in iter_except(q.get_nowait, Empty):
-			if line is None:
-				self.quit()
-				return
-			else:
-				self.label['text'] = line
-				break
-		self.root.after(40, self.update, q)
+#		#stdout to gui
+#	def update(self, q):
+#		for line in iter_except(q.get_nowait, Empty):
+#			if line is None:
+#				self.quit()
+#				return
+#			else:
+#				self.label['text'] = line
+#				break
+#		self.root.after(40, self.update, q)
+#
+#	#stdout to gui
+#	def quit(self):
+#		self.process.kill()
+#		self.root.destroy()
+#
+#	
+#	def commandinput(self):
+#		inputComm = self.user_Entry.get()
+#		self.user_Entry.delete(0, END)
+#		
+#		#ps_drone.py "Playground" algorithm
+#		key = inputComm			
 
-	#stdout to gui
-	def quit(self):
-		self.process.kill()
-		self.root.destroy()
-
-	'''
-	def commandinput(self):
-		inputComm = self.user_Entry.get()
-		self.user_Entry.delete(0, END)
+#		elif key == "7":	self.drone.turnAngle(-10,1)
+#		elif key == "9":	self.drone.turnAngle( 10,1)
+#		elif key == "4":	self.drone.turnAngle(-45,1)
+#		elif key == "6":	self.drone.turnAngle( 45,1)
+#		elif key == "1":	self.drone.turnAngle(-90,1)
+#		elif key == "3":	self.drone.turnAngle( 90,1)
+#		elif key == "*":	self.drone.doggyHop()
+#		elif key == "+":	self.drone.doggyNod()
+#		elif key == "-":	self.drone.doggyWag()
+#		else: key = ""
 		
-		#ps_drone.py "Playground" algorithm
-		key = inputComm			
-		
-		if   key == "0":	self.drone.hover()
-		elif key == "w":	self.drone.moveForward()
-		elif key == "s":	self.drone.moveBackward()
-		elif key == "a":	self.drone.moveLeft()
-		elif key == "d":	self.drone.moveRight()
-		elif key == "q":	self.drone.turnLeft()
-		elif key == "e":	self.drone.turnRight()
-		elif key == "7":	self.drone.turnAngle(-10,1)
-		elif key == "9":	self.drone.turnAngle( 10,1)
-		elif key == "4":	self.drone.turnAngle(-45,1)
-		elif key == "6":	self.drone.turnAngle( 45,1)
-		elif key == "1":	self.drone.turnAngle(-90,1)
-		elif key == "3":	self.drone.turnAngle( 90,1)
-		elif key == "8":	self.drone.moveUp()
-		elif key == "2":	self.drone.moveDown()
-		elif key == "*":	self.drone.doggyHop()
-		elif key == "+":	self.drone.doggyNod()
-		elif key == "-":	self.drone.doggyWag()
-		else: key = ""
 
-	
-
+	###################################GUI Drone button functions##################################################
 	def batt_status(self):
+		#print "In battery function"
 		while (self.drone.getBattery()[0]==-1):
 			time.sleep(0.1)
+
 		self.drone.printBlue("Battery: "+str(self.drone.getBattery()[0])+"%  "+str(self.drone.getBattery()[1]))	# Gives a battery status
 		if self.drone.getBattery()[1]=="empty":
 			sys.exit()
@@ -227,39 +269,40 @@ class dcMainApp(object):
 
 	def shutdown(self):
 		self.drone.shutdown()
-	
+
 	def d_hover(self):
 		self.drone.hover()
 
 	def d_forward(self):
-		self.drone.moveforward()
+		self.drone.moveForward()
 
 	def d_backward(self):
-		self.drone.movebackward()
+		self.drone.moveBackward()
 
 	def d_left(self):
-		self.drone.moveleft()
+		self.drone.moveLeft()
 
 	def d_right(self):
-		self.drone.moveright()
+		self.drone.moveRight()
 
 	def d_turnright(self):
-		self.drone.turnright()
+		xr = 0.50
+		self.drone.turnRight(xr)
 
 	def d_turnleft(self):
-		self.drone.turnleft()
+		xl = 0.50
+		self.drone.turnLeft(xl)
 
 	def d_moveup(self):
-		self.drone.moveup()
+		self.drone.moveUp()
 
 	def d_movedown(self):
-		self.drone.movedown()
+		self.drone.moveDown()
 
 	def quit(self):
-		self.drone.shutdown
+		self.drone.shutdown	# Land drone and discard drone object
+		self.root.destroy()	# Discard Main window object
 		print "Exiting GUI"
-
-
 
 
 
