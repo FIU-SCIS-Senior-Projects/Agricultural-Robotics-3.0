@@ -1,5 +1,6 @@
 import itertools, ps_drone, time, math
 from threading import Thread
+from collections import deque
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -13,14 +14,14 @@ class Navigator:
         self.__SOFT_TURN = 0.1
         self.__HARD_TURN = 0.3
         self.__DEF_SPD   = 0.3
-        self.__SAMP_NUM  = 10
-        self.__SAMP_TIME = 1.0
+        self.__SAMP_NUM  = 30
+        self.__SAMP_TIME = 0.2
 
         # Default (invalid) field values
         self.__mag_avg = [-14, 13] # Manually calculated
         #self.__mag_avg = [-42.7222, 9.2991] # Manually calculated
         self.__mag_acc = 6  # Points to record during calibration
-        self.__samples = [] # Sample queue
+        self.__samples = deque(maxlen = self.__SAMP_NUM) # Sample queue
         self.__tar_gps = [0.0, 0.0] # Target's gps coordinate
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
@@ -36,7 +37,7 @@ class Navigator:
         self.__sensors = Thread(target=self.__sensors_collect, args=())
         self.__sensors.daemon = True
         self.__sensors.start()
-        time.sleep(self.__SAMP_TIME * self.__SAMP_NUM)
+        time.sleep(self.__SAMP_TIME * self.__SAMP_NUM * 1.5)
 
         # Get current GPS for "home" location
         self.__set_stats()
@@ -44,62 +45,36 @@ class Navigator:
 
     def __sensors_collect(self):
         """Continuously collects sensor data"""
-        # Initialize samples
-        for i in range(4):
-            self.__samples.append(self.__get_stats())
-            time.sleep(self.__SAMP_TIME)
-
         while True:
-            # If there are too many samples, delete some
-            while len(self.__samples) >= self.__SAMP_NUM:
-                del self.__samples[0]
-
-            # Add new sensor data
             self.__samples.append(self.__get_stats())
-
-            # Wait for next sampling
             time.sleep(self.__SAMP_TIME)
 
     def __set_stats(self):
         """Preprocessing of stats queue to reduce variation"""
-        acc, gyr, gps, alt, mag, deg = [], [], [], [], [], []
-        for item in self.__samples:
-            acc.append(item["acc"])
-            gyr.append(item["gyr"])
-            gps.append(item["gps"])
-            alt.append(item["alt"])
-            mag.append(item["mag"])
-            deg.append(item["deg"])
+        # 1-to-1 lists used in for loops
+        acc, gyr, gps, alt, mag, deg, out = [], [], [], [], [], [], []
+        stat_names = ["acc", "gyr", "gps", "alt", "mag", "deg"]
+        stat_lists = [ acc,   gyr,   gps,   alt,   mag,   deg ]
 
-#        # Remove outliers
-#        acc_proc = list(itertools.compress(
-#            acc, self.__is_outlier(np.array(acc))))
-#        gyr_proc = list(itertools.compress(gyr,
-#            self.__is_outlier(np.array(gyr))))
-#        gps_proc = list(itertools.compress(gps,
-#            self.__is_outlier(np.array(gps))))
-#        alt_proc = list(itertools.compress(alt,
-#            self.__is_outlier(np.array(alt))))
-#        mag_proc = list(itertools.compress(mag,
-#            self.__is_outlier(np.array(mag))))
-#        deg_proc = list(itertools.compress(deg,
-#            self.__is_outlier(np.array(deg))))
-#
-#        # Check that lists are populated
-#        if not acc_proc: acc_proc = acc
-#        if not gyr_proc: gyr_proc = gyr
-#        if not gps_proc: gps_proc = gps
-#        if not alt_proc: alt_proc = alt
-#        if not mag_proc: mag_proc = mag
-#        if not deg_proc: deg_proc = deg
+        # Build lists to be analyzed
+        for item in list(self.__samples):
+            for i in range(len(stat_names)):
+                stat_lists[i].append(item[stat_names[i]])
+
+        # Remove outliers
+        for stat in stat_lists:
+            out.append(list(itertools.compress(
+                stat, self.__is_outlier(np.array(stat)))))
+
+        # Check that lists are populated
+        for i in range(len(stat_lists)):
+            if out[i]: stat_lists[i] = out[i]
 
         # Average the remainder of the lists
-        self.__stats["acc"] = reduce(lambda x, y: x + y, np.array(acc)) / len(acc)
-        self.__stats["gyr"] = reduce(lambda x, y: x + y, np.array(gyr)) / len(gyr)
-        self.__stats["gps"] = reduce(lambda x, y: x + y, np.array(gps)) / len(gps)
-        self.__stats["alt"] = reduce(lambda x, y: x + y, np.array(alt)) / len(alt)
-        self.__stats["mag"] = reduce(lambda x, y: x + y, np.array(mag)) / len(mag)
-        self.__stats["deg"] = reduce(lambda x, y: x + y, np.array(deg)) / len(deg)
+        for i in range(len(stat_lists)):
+            self.__stats[stat_names[i]] = reduce(
+                    lambda x, y: x + y, np.array(stat_lists[i])
+                    ) / len(stat_lists[i])
 
     def __is_outlier(self, points, thresh=3.5):
         """
@@ -129,9 +104,7 @@ class Navigator:
         diff = np.sum((points - median)**2, axis=-1)
         diff = np.sqrt(diff)
         med_abs_deviation = np.median(diff)
-    
-        try: modified_z_score = 0.6745 * diff / med_abs_deviation
-        except: pass
+        modified_z_score = 0.6745 * diff / med_abs_deviation
     
         return modified_z_score > thresh
 
@@ -201,8 +174,6 @@ class Navigator:
             self.__drone.turnAngle(-(360.0 / self.__mag_acc), 1.0)
             self.__drone.hover()
             time.sleep(2)
-        #self.__mag_avg[0] = reduce(lambda x, y: x + y, mag_x) / len(mag_x)
-        #self.__mag_avg[1] = reduce(lambda x, y: x + y, mag_y) / len(mag_y)
         self.__mag_avg[0] = np.mean(np.array(mag_x))
         self.__mag_avg[1] = np.mean(np.array(mag_y))
     
