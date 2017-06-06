@@ -3,8 +3,12 @@ from ps_drone import Drone
 from navigator import Navigator
 from threading import Thread
 
-#home = [25.758984, -80.373743]
-gps_target = [25.758889, -80.374701]
+TEST_HOME = [25.758995, -80.373743]
+#gps_target = [25.758536, -80.374548] # south ecs parking lot
+#gps_target = [25.757582, -80.373888] # library entrance
+gps_target = [25.758633, -80.372067] # physics lecture
+#gps_target = [25.759387, -80.376163] # roundabout
+
 tar_threshold = 2.0
 landing = False
 
@@ -25,8 +29,8 @@ def goto(drone, navigator):
             landing = True
         else:
             print "moving: {}".format(movement)
-            drone.move(movement)
-            time.sleep(2)
+            #drone.move(*movement)
+            time.sleep(1.5)
 
 def drone_act(drone, navigator, in_list, com):
     # Check character 'com' for valid command,
@@ -38,6 +42,8 @@ def drone_act(drone, navigator, in_list, com):
         drone.shutdown()
     elif com == 't':
         drone.takeoff()
+    elif com == 'C':
+        navigator.calibrate_drone(True)
     elif com == 'c':
         navigator.calibrate_drone()
     elif com == 'g':
@@ -66,13 +72,14 @@ def drone_init(drone):
 
 def main():
     # Initialize drone and navigator
-    global home
+    global TEST_HOME
     drone = Drone()
     drone_init(drone)
     print battery(drone)
     navigator = Navigator(drone)
     time.sleep(0.5)
     navigator.set_target(gps_target)
+    navigator.set_home(TEST_HOME)
     print "Home: {}".format(navigator.get_home())
     
     # Begin watching input for flight commands.
