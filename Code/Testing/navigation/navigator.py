@@ -19,7 +19,6 @@ class Navigator:
 
         # Default (invalid) field values
         self.__mag_avg = [-14, 13] # Manually calculated
-        #self.__mag_avg = [-42.7222, 9.2991] # Manually calculated
         self.__mag_acc = 6  # Points to record during calibration
         self.__samples = deque(maxlen = self.__SAMP_NUM) # Sample queue
         self.__tar_gps = [0.0, 0.0] # Target's gps coordinate
@@ -52,9 +51,9 @@ class Navigator:
     def __set_stats(self):
         """Preprocessing of stats queue to reduce variation"""
         # 1-to-1 lists used in for loops
-        acc, gyr, gps, alt, mag, deg, out = [], [], [], [], [], [], []
-        stat_names = ["acc", "gyr", "gps", "alt", "mag", "deg"]
-        stat_lists = [ acc,   gyr,   gps,   alt,   mag,   deg ]
+        acc, gyr, gps, alt, mag, deg, pry, out = [], [], [], [], [], [], [], []
+        stat_names = ["acc", "gyr", "gps", "alt", "mag", "deg", "pry"]
+        stat_lists = [ acc,   gyr,   gps,   alt,   mag,   deg ,  pry ]
 
         # Build lists to be analyzed
         for item in list(self.__samples):
@@ -119,6 +118,7 @@ class Navigator:
         stats["acc"] = self.__drone.NavData["raw_measures"][0]
         stats["gyr"] = self.__drone.NavData["raw_measures"][1]
         stats["gps"] = self.__drone.NavData["gps"][:-1] # not using altitude value
+        stats["pry"] = self.__drone.NavData["demo"][2] # pitch roll yaw
 
         # Convert altitude to meters
         stats["alt"] = self.__drone.NavData["altitude"][0] / 1000.0
@@ -238,5 +238,22 @@ class Navigator:
     def get_all(self):
         self.__set_stats()
         return self.__stats
+
+    def get_acc(self):
+        self.__set_stats()
+        return self.__stats["acc"]
+
+    def get_demo(self):
+        self.__set_stats()
+        data = self.__stats["pry"]
+        return "pitch: {}\nroll: {}\nyaw: {}".format(
+                data[0], data[1], data[2])
+
+
+
+
+
+
+
 
 
