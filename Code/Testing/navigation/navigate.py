@@ -3,19 +3,41 @@ from ps_drone import Drone
 from navigator import Navigator
 from threading import Thread
 
-TEST_HOME = [25.758995, -80.373743]
+#TEST_HOME = [25.758995, -80.373743]
 #gps_target = [25.758536, -80.374548] # south ecs parking lot
-#gps_target = [25.757582, -80.373888] # library entrance
-gps_target = [25.758633, -80.372067] # physics lecture
+gps_target = [25.757582, -80.373888] # library entrance
+#gps_target = [25.758633, -80.372067] # physics lecture
 #gps_target = [25.759387, -80.376163] # roundabout
 
 tar_threshold = 2.0
 landing = False
 
 
+def weeble(drone):
+    # Test if movements must be 'cancelled out'
+    # forward, stop, right, stop, up, stop, lturn, stop
+    moves = [[ 0.0,  0.2,  0.0,  0.0],
+             [ 0.0, -0.2,  0.0,  0.0],
+             [ 0.2,  0.0,  0.0,  0.0],
+             [-0.2,  0.0,  0.0,  0.0],
+             [ 0.0,  0.0,  1.0,  0.0],
+             [ 0.0,  0.0, -1.0,  0.0],
+             [ 0.0,  0.0,  0.0,  1.0],
+             [ 0.0,  0.0,  0.0, -1.0],
+             ]
+    drone.takeoff()
+    time.sleep(3)
+    for move in moves:
+        print "moving {}".format(move)
+        drone.move(*move)
+        time.sleep(2)
+    drone.hover()
+    time.sleep(1)
+    drone.land()
+    
+
 def goto(drone, navigator):
     global landing
-    at_target = False
     while not landing:
         move = navigator.get_move()
         movement = move[0]
@@ -40,22 +62,22 @@ def drone_act(drone, navigator, in_list, com):
         landing = True
         in_list.remove(in_list[0])
         drone.shutdown()
+    elif com == 'g':
+        moving = Thread(target=goto, args=(drone, navigator))
+        moving.daemon = True
+        moving.start()
     elif com == 't':
         drone.takeoff()
     elif com == 'C':
         navigator.calibrate_drone(True)
     elif com == 'c':
         navigator.calibrate_drone()
-    elif com == 'g':
-        moving = Thread(target=goto, args=(drone, navigator))
-        moving.daemon = True
-        moving.start()
-    elif com == 'd':
-        print navigator.get_deg()
-    elif com == 'm':
-        print navigator.get_mag()
     elif com == 'a':
         print navigator.get_all()
+    elif com == 'w':
+        moving = Thread(target=weeble, args=(drone,))
+        moving.daemon = True
+        moving.start()
     return in_list
 
 def battery(drone):
@@ -72,15 +94,12 @@ def drone_init(drone):
 
 def main():
     # Initialize drone and navigator
-    global TEST_HOME
     drone = Drone()
     drone_init(drone)
     print battery(drone)
     navigator = Navigator(drone)
     time.sleep(0.5)
     navigator.set_target(gps_target)
-    navigator.set_home(TEST_HOME)
-    print "Home: {}".format(navigator.get_home())
     
     # Begin watching input for flight commands.
     read_list = [sys.stdin]
