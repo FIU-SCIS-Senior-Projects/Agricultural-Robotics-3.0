@@ -224,7 +224,7 @@ class Navigator:
             move_speed, turn_speed = self.__DEF_SPD,   0.0
 
         # Return movement list and distance to target
-        return ([move_speed, 0.0, 0.0, turn_speed], self.__tar_dist)
+        return ([0.0, move_speed, 0.0, turn_speed], self.__tar_dist)
 
     def set_target(self, new_target):
         self.__tar_gps = new_target
