@@ -10,12 +10,13 @@ class Navigator:
     def __init__(self, drone):
         """Initialize drone navigation variables"""
         # Constants
+        print ">>> AR Drone 2.0 Navigator"
         self.__REQ_PACKS = ["altitude", "demo", "gps", "magneto", "raw_measures"]
         self.__SOFT_TURN = 0.1
         self.__HARD_TURN = 0.3
         self.__DEF_SPD   = 0.3
-        self.__SAMP_NUM  = 30
-        self.__SAMP_TIME = 0.2
+        self.__SAMP_NUM  = 10
+        self.__SAMP_TIME = 0.5
 
         # Default (invalid) field values
         self.__mag_avg = [-14, 13] # Manually calculated
@@ -27,20 +28,26 @@ class Navigator:
         self.__stats = {}   # Stats dict
 
         # Initialize sensor data transmissions
+        print ">>> Initializing NavData"
         self.__drone = drone
         self.__drone.useDemoMode(False)
         self.__drone.getNDpackage(self.__REQ_PACKS)
         time.sleep(0.1)
 
         # Start taking sensor data
+        print ">>> Populating data queue..."
         self.__sensors = Thread(target=self.__sensors_collect, args=())
         self.__sensors.daemon = True
         self.__sensors.start()
         time.sleep(self.__SAMP_TIME * self.__SAMP_NUM * 1.5)
 
         # Get current GPS for "home" location
+        print ">>> Obtaining Home coordinate"
         self.__set_stats()
         self.__home = self.__stats["gps"]
+
+        # Done initializing
+        print ">>> READY"
 
     def __sensors_collect(self):
         """Continuously collects sensor data"""
@@ -51,9 +58,11 @@ class Navigator:
     def __set_stats(self):
         """Preprocessing of stats queue to reduce variation"""
         # 1-to-1 lists used in for loops
-        acc, gyr, gps, alt, mag, deg, pry, out = [], [], [], [], [], [], [], []
-        stat_names = ["acc", "gyr", "gps", "alt", "mag", "deg", "pry"]
-        stat_lists = [ acc,   gyr,   gps,   alt,   mag,   deg ,  pry ]
+        acc, gyr, gps = [], [], []
+        alt, mag, deg = [], [], []
+        pry, mfu, out = [], [], []
+        stat_names = ["acc", "gyr", "gps", "alt", "mag", "deg", "pry", "mfu"]
+        stat_lists = [ acc,   gyr,   gps,   alt,   mag,   deg ,  pry ,  mfu ]
 
         # Build lists to be analyzed
         for item in list(self.__samples):
@@ -119,6 +128,7 @@ class Navigator:
         stats["gyr"] = self.__drone.NavData["raw_measures"][1]
         stats["gps"] = self.__drone.NavData["gps"][:-1] # not using altitude value
         stats["pry"] = self.__drone.NavData["demo"][2] # pitch roll yaw
+        stats["mfu"] = self.__drone.NavData["magneto"][6]
 
         # Convert altitude to meters
         stats["alt"] = self.__drone.NavData["altitude"][0] / 1000.0
@@ -229,7 +239,8 @@ class Navigator:
 
     def get_mag(self):
         self.__set_stats()
-        return self.__drone.NavData["magneto"][0]
+        #return self.__drone.NavData["magneto"][0]
+        return self.__stats["mfu"]
 
     def get_deg(self):
         self.__set_stats()
@@ -249,7 +260,9 @@ class Navigator:
         return "pitch: {}\nroll: {}\nyaw: {}".format(
                 data[0], data[1], data[2])
 
-
+    def get_gps(self):
+        self.__set_stats()
+        return self.__stats["gps"]
 
 
 
