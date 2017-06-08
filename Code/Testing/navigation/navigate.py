@@ -37,6 +37,7 @@ def weeble(drone):
     
 
 def goto(drone, navigator):
+    # Maintain steady motion toward a GPS waypoint
     global landing
     while not landing:
         move = navigator.get_move()
@@ -54,30 +55,44 @@ def goto(drone, navigator):
             #drone.move(*movement)
             time.sleep(1.5)
 
+def smooth(drone):
+    # Dynamically configure trim to control x,y speed
+    print "hello"
+
 def drone_act(drone, navigator, in_list, com):
     # Check character 'com' for valid command,
     # otherwise ignore it.
     global landing
-    if com == 'z':
+    if com == 'z': # shutdown and stop script
         landing = True
         in_list.remove(in_list[0])
         drone.shutdown()
-    elif com == 'g':
-        moving = Thread(target=goto, args=(drone, navigator))
+
+    # flight functions
+    elif com == 'p':# smooth function
+        moving = Thread(target=smooth, args=(drone,))
         moving.daemon = True
         moving.start()
-    elif com == 't':
-        drone.takeoff()
-    elif com == 'C':
-        navigator.calibrate_drone(True)
-    elif com == 'c':
-        navigator.calibrate_drone()
-    elif com == 'a':
-        print navigator.get_all()
-    elif com == 'w':
+    elif com == 'w': # weeble function
         moving = Thread(target=weeble, args=(drone,))
         moving.daemon = True
         moving.start()
+    elif com == 'g':# goto function
+        moving = Thread(target=goto, args=(drone, navigator))
+        moving.daemon = True
+        moving.start()
+
+    # debugging functions
+    elif com == 't': # takeoff
+        drone.takeoff()
+    elif com == 'C': # calibrate and normalize mag
+        navigator.calibrate_drone(True)
+    elif com == 'c': # regular calibration
+        navigator.calibrate_drone()
+
+    # info printing for debugging
+    elif com == 'a':
+        print navigator.get_all()
     return in_list
 
 def battery(drone):
