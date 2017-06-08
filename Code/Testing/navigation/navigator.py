@@ -58,11 +58,12 @@ class Navigator:
     def __set_stats(self):
         """Preprocessing of stats queue to reduce variation"""
         # 1-to-1 lists used in for loops
+        vel = []
         acc, gyr, gps = [], [], []
         alt, mag, deg = [], [], []
         pry, mfu, out = [], [], []
-        stat_names = ["acc", "gyr", "gps", "alt", "mag", "deg", "pry", "mfu"]
-        stat_lists = [ acc,   gyr,   gps,   alt,   mag,   deg ,  pry ,  mfu ]
+        stat_names = ["vel", "acc", "gyr", "gps", "alt", "mag", "deg", "pry", "mfu"]
+        stat_lists = [ vel,   acc,   gyr,   gps,   alt,   mag,   deg ,  pry ,  mfu ]
 
         # Build lists to be analyzed
         for item in list(self.__samples):
@@ -113,6 +114,7 @@ class Navigator:
         stats["gps"] = self.__drone.NavData["gps"][:-1] # not using altitude value
         stats["pry"] = self.__drone.NavData["demo"][2] # pitch roll yaw
         stats["mfu"] = self.__drone.NavData["magneto"][6]
+        stats["vel"] = self.__drone.NavData["demo"][4] # xyz velocity mm/s
 
         # Convert altitude to meters
         stats["alt"] = self.__drone.NavData["altitude"][0] / 1000.0
@@ -233,6 +235,10 @@ class Navigator:
     def get_all(self):
         self.__set_stats()
         return self.__stats
+
+    def get_vel(self):
+        self.__set_stats()
+        return self.__stats["vel"]
 
     def get_acc(self):
         self.__set_stats()

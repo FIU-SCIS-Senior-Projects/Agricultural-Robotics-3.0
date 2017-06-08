@@ -2,6 +2,8 @@ import math, select, sys, time
 from ps_drone import Drone
 from navigator import Navigator
 from threading import Thread
+import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 
 #TEST_HOME = [25.758995, -80.373743]
 #gps_target = [25.758536, -80.374548] # south ecs parking lot
@@ -9,7 +11,6 @@ gps_target = [25.757582, -80.373888] # library entrance
 #gps_target = [25.758633, -80.372067] # physics lecture
 #gps_target = [25.759387, -80.376163] # roundabout
 
-tar_threshold = 2.0
 landing = False
 
 
@@ -39,6 +40,8 @@ def weeble(drone):
 def goto(drone, navigator):
     # Maintain steady motion toward a GPS waypoint
     global landing
+    tar_threshold = 2.0
+
     while not landing:
         move = navigator.get_move()
         movement = move[0]
@@ -55,9 +58,46 @@ def goto(drone, navigator):
             #drone.move(*movement)
             time.sleep(1.5)
 
-def smooth(drone):
-    # Dynamically configure trim to control x,y speed
-    print "hello"
+def smooth(drone, navigator):
+    # Use accelerometer to dynamically adjust x,y speed
+    done, adj_spd = False, 0.03
+    test_time, lr_tol, max_spd = 10, 20, 250
+    move_def = [ 0.00,  0.15,  0.00,  0.00]
+    move_acc = [ 0.00,  0.15,  0.00,  0.00]
+
+    # Begin test
+    drone.takeoff()
+    time.sleep(3)
+    start_time = time.time()
+    drone.move(*move_acc)
+    print "drone.move({})".format(move_acc)
+
+    # Begin corrections
+    while not done:
+        # Refresh velocity measurement
+        vel = navigator.get_vel()
+
+        # Correct left/right movement
+        if   lr_tol <  vel[1]: move_acc[0] += -adj_spd
+        elif vel[1] < -lr_tol: move_acc[0] +=  adj_spd
+        else:                  move_acc[0]  =  move_def[0]
+
+        # Maintain max_spd mm/s
+        if   max_spd < vel[0]: move_acc[1] += -adj_spd
+        elif vel[0] < max_spd: move_acc[1] +=  adj_spd
+        else:                  move_acc[1]  =  move_def[1]
+
+        # Perform movement
+        drone.move(*move_acc)
+        print "drone.move({})".format(move_acc)
+        time.sleep(1)
+
+        # Stop after test_time seconds
+        if time.time() - start_time > test_time:
+            done = True
+
+    # Finish with a land
+    drone.land()
 
 def drone_act(drone, navigator, in_list, com):
     # Check character 'com' for valid command,
@@ -70,7 +110,7 @@ def drone_act(drone, navigator, in_list, com):
 
     # flight functions
     elif com == 'p':# smooth function
-        moving = Thread(target=smooth, args=(drone,))
+        moving = Thread(target=smooth, args=(drone, navigator))
         moving.daemon = True
         moving.start()
     elif com == 'w': # weeble function
@@ -89,6 +129,9 @@ def drone_act(drone, navigator, in_list, com):
         navigator.calibrate_drone(True)
     elif com == 'c': # regular calibration
         navigator.calibrate_drone()
+    elif com == 'r': # reconnect navdata
+        print "NoNavData: {}".format(drone.NoNavData)
+        drone.reconnectNavData()
 
     # info printing for debugging
     elif com == 'a':
