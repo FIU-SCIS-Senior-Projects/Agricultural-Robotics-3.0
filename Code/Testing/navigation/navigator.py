@@ -15,8 +15,8 @@ class Navigator:
         self.__SOFT_TURN = 0.1
         self.__HARD_TURN = 0.3
         self.__DEF_SPD   = 0.3
-        self.__SAMP_NUM  = 10
-        self.__SAMP_TIME = 0.5
+        self.__SAMP_NUM  = 150
+        self.__SAMP_TIME = 0.005
 
         # Default (invalid) field values
         self.__mag_avg = [-14, 13] # Manually calculated
