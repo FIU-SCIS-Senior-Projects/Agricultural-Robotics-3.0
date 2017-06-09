@@ -55,11 +55,15 @@ class DCMainApp(object):
 
 		self.altdis = tk.Label(self.root, text=" ", fg='blue', bg='lightgrey')
 		self.altdis.config(font=('Arial',15,'bold'))
-		self.altdis.grid(row=3, column=1)
+		self.altdis.grid(row=4, column=1)
 
-		self.velDis = tk.Label(self.root, text=" ")
-		self.velDis.config(font=('Arial', 15, 'bold'), fg='blue', bg='lightgrey')
-		self.velDis.grid(row=4, column=1)
+		self.veldis = tk.Label(self.root, text=" ")
+		self.veldis.config(font=('Arial', 15, 'bold'), fg='blue', bg='lightgrey')
+		self.veldis.grid(row=6, column=1)
+
+		self.gpsdis = tk.Label(self.root, text=" ")
+		self.gpsdis.config(font=('Arial', 15, 'bold'), fg='blue', bg='lightgrey')
+		self.gpsdis.grid(row=8, column=1)
 
 		self.pushbat = tk.Button(self.root, text="Activate Sensors Display", highlightbackground="lightgrey", command=self.senActivate)
 		self.pushbat.grid(row=1, column=1)
@@ -129,17 +133,33 @@ class DCMainApp(object):
 	def senActivate(self):
 		self.battstat()
 		self.altstat()
+		self.velstat()
+		self.gpsstat()
 
 	def battstat(self):
-		battDisplay = "Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1])# Battery update variable
-		self.battdis.config(text=battDisplay)
-		self.root.after(600, self.battstat)
+		if str(self.drone.getBattery()[1]) != "OK":
+			battDisplay = "Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1])# Battery update variable
+			self.battdis.config(text=battDisplay, fg='red')
+			self.root.after(600, self.battstat)
+		else:
+			battDisplay = "Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1])# Battery update variable
+			self.battdis.config(text=battDisplay)
+			self.root.after(600, self.battstat)
 
 	def altstat(self):
-		altDisplay = "Altitude: "+str(self.drone.NavData['altitude'][3]/10)
+		altDisplay = "Altitude: "+str(self.drone.NavData['altitude'][3]/10)+" cm"
 		self.altdis.config(text=altDisplay)
-		self.root.after(10, self.altstat)
+		self.root.after(200, self.altstat)
 
+	def velstat(self):
+		velDisplay = "X Velocity: "+str(int(self.drone.NavData['demo'][4][0]/10)) + " cm/s" + "\nY Velocity: "+str(int(self.drone.NavData['demo'][4][1]/10)) + " cm/s"
+		self.veldis.config(text=velDisplay)
+		self.root.after(200, self.velstat)
+
+	def gpsstat(self):
+		gpsDisplay = "Latitude: "+str(self.drone.NavData['gps'][0]) + "\nLongitude: "+str(self.drone.NavData['gps'][1])
+		self.gpsdis.config(text=gpsDisplay)
+		self.root.after(200, self.gpsstat)
 
 	def take_off(self):
 		self.drone.takeoff()
@@ -186,16 +206,17 @@ class DCMainApp(object):
 
 
 def fdrone__init(drone):
-		drone.startup()
-		drone.reset()
+	drone.startup()
+	drone.reset()
 
-		drone.useDemoMode(False)
-		drone.getNDpackage(["demo","altitude"])
-		time.sleep(0.5)
+	drone.trim()
+	drone.useDemoMode(False)
+	drone.getNDpackage(["demo","altitude","gps"])
+	time.sleep(2)
 
-		NDC = drone.NavDataCount
-		while NDC == drone.NavDataCount: time.sleep(0.0001)
-		while drone.getBattery()[0] == -1: time.sleep(0.01)
+	NDC = drone.NavDataCount
+	while NDC == drone.NavDataCount: time.sleep(0.0001)
+	while drone.getBattery()[0] == -1: time.sleep(0.01)
 
 
 def main():
