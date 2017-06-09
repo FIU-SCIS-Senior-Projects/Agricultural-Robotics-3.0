@@ -136,9 +136,9 @@ class DCMainApp(object):
 		self.root.after(600, self.battstat)
 
 	def altstat(self):
-		altDisplay = "Altitude: "    #+str(self.drone.NavData['altitude'][3]/10)
+		altDisplay = "Altitude: "+str(self.drone.NavData['altitude'][3]/10)
 		self.altdis.config(text=altDisplay)
-		self.root.after(1, self.altstat)
+		self.root.after(10, self.altstat)
 
 
 	def take_off(self):
@@ -200,7 +200,7 @@ def fdrone__init(drone):
 
 def main():
 	drone = ps_drone.Drone()		#Drone object
-	#fdrone__init(drone)
+	fdrone__init(drone)
 	root = tk.Tk()
 	root.geometry("900x600")		#GUI window dimensions
 	drone_GUI = DCMainApp(root, drone)
