@@ -60,8 +60,8 @@ def goto(drone, navigator):
 
 def smooth(drone, navigator):
     # Use accelerometer to dynamically adjust x,y speed
-    done, adj_spd = False, 0.03
-    test_time, lr_tol, max_spd = 10, 20, 250
+    done, adj_spd, adj_ver = False, 0.03, [0, 0]
+    test_time, lr_tol, max_spd = 10, 60, 250
     move_def = [ 0.00,  0.15,  0.00,  0.00]
     move_acc = [ 0.00,  0.15,  0.00,  0.00]
 
@@ -71,6 +71,10 @@ def smooth(drone, navigator):
     start_time = time.time()
     drone.move(*move_acc)
     print "drone.move({})".format(move_acc)
+
+    # TODO
+    # USE ADJ_VER TO KEEP TRACK OF UNDERGOING CORRECTIONS
+    # IN CASE OF OVERCORRECTION, RESET TO DEFAULT MOVE
 
     # Begin corrections
     while not done:
