@@ -24,7 +24,7 @@ import threading, select, socket, time, tempfile, multiprocessing, struct, os, s
 import thread, signal, subprocess
 
 if os.name == 'posix':	import termios, fcntl	# for getKey(), ToDo: Reprogram for Windows
- 
+
 commitsuicideV, showVid, vCruns, lockV, debugV =	False, False, False, threading.Lock(), False	# Global variables for video-decoding
 offsetND, suicideND, commitsuicideND = 0, False, False												# Global variables for NavDava-decoding
 
@@ -49,7 +49,7 @@ class Drone(object):
 		self.valueCorrection = 	False
 		self.selfRotation = 	0.0185				# use this value, if not checked by getSelfRotation()
 		self.stopOnComLoss = 	False				# when there is a communication-problem, drone will land or not
-		
+
 		# Drone communication variables
 		self.DroneIP = 		"192.168.1.1"
 		self.NavDataPort = 	5554
@@ -73,7 +73,7 @@ class Drone(object):
 		self.__VideoReady = 			False
 		self.__vKey =					""
 		self.__SaveVideo = 				False
-		
+
 		# Config variables
 		self.__ConfigData = 			[]
 		self.__ConfigDataCount = 		0
@@ -83,7 +83,7 @@ class Drone(object):
 		self.__ConfigUserID = 			"0a100407"
 		self.__ConfigApplicationID = 	"03016321"
 		self.sendConfigSaveMode = 		False
-		
+
 		# Internal variables
 		self.__NavDataProcess =			""
 		self.__VideoProcess =			""
@@ -100,7 +100,7 @@ class Drone(object):
 		self.__pBlueStr = 				"\033[94m"
 		self.__pPurpleStr = 			"\033[95m"
 		self.__pLineUpStr = 			"\033[1A"
-		
+
 	###### Connect to the drone and start all procedures
 	def startup(self):
 		# Check for drone in the network and wake it up
@@ -141,7 +141,7 @@ class Drone(object):
 
 		# Final settings
 		self.useDemoMode(True) 		# This entry is necessary for the drone's firmware, otherwise the NavData contains just header and footer
-		self.setConfig("custom:session_id","-all")	
+		self.setConfig("custom:session_id","-all")
 		self.getNDpackage(["demo"])
 
 		time.sleep(1)
@@ -156,9 +156,9 @@ class Drone(object):
 				self.__threadSendConfig.start()
 				time.sleep(0.05)
 			time.sleep(0.01)
-		
+
 	###### Clean Shutdown
-	def shutdown(self):								
+	def shutdown(self):
 		if self.__shutdown:	sys.exit()
 		self.__shutdown = True
 		if self.debug: print "Shutdown..."
@@ -223,7 +223,7 @@ class Drone(object):
 	def SaveVideo(self):			return self.__SaveVideo
 	@property
 	def ConfigData(self):			return self.__ConfigData
-	@property	
+	@property
 	def ConfigDataCount(self):		return self.__ConfigDataCount
 	@property
 	def ConfigDataTimeStamp(self):	return self.__ConfigDataTimeStamp
@@ -233,9 +233,9 @@ class Drone(object):
 	def ConfigSessionID(self):		return self.__ConfigSessionID
 	@property
 	def ConfigUserID(self):			return self.__ConfigUserID
-	@property	
+	@property
 	def ConfigApplicationID(self):	return self.__ConfigApplicationID
-		
+
 ######################=-
 ### Drone commands ###=-
 ######################=-
@@ -259,7 +259,7 @@ class Drone(object):
 		try:
 			value = float(*args[0])
 			self.__ConfigSessionID = normalLen8(value)
-			self.setConfig("custom:session_id", self.__ConfigSessionID)		
+			self.setConfig("custom:session_id", self.__ConfigSessionID)
 		except:		return (self.__ConfigSessionID)
 
 	def setConfigUserID(self, *args):
@@ -277,7 +277,7 @@ class Drone(object):
 		except:		return (self.__ConfigApplicationID)
 
 	def setConfigAllID(self):
-		self.setConfig("custom:session_id", self.__ConfigSessionID)		
+		self.setConfig("custom:session_id", self.__ConfigSessionID)
 		self.setConfig("custom:profile_id", self.__ConfigUserID)
 		self.setConfig("custom:application_id", self.__ConfigApplicationID)
 
@@ -291,7 +291,7 @@ class Drone(object):
 
 	def mtrim(self):
 		self.at("CALIB", [0])
-	
+
 	def mantrim(self, thetaAngle, phiAngle, yawAngle):		# manual Trim
 		if self.valueCorrection:
 			try:		thetaAngle = 		float(thetaAngle)
@@ -419,7 +419,7 @@ class Drone(object):
 		speed = 	self.__checkSpeedValue(speed)
 		ospeed = 	speed									# stores the given speed-value
 		reftime = 	time.time()
-		accurateness = 0		
+		accurateness = 0
 		try:	accurateness = args[0]
 		except:	pass
 		if accurateness<=0:
@@ -617,7 +617,7 @@ class Drone(object):
 		# Drone will shut down, if its flight-angle is more than set.
 
 #   Control the drone's LED.
-	def led(self, animation, frequency, duration):	
+	def led(self, animation, frequency, duration):
 		if animation < 21 and frequency > 0 and duration >= 0:
 			self.at("LED", [animation, float(frequency), duration])
 
@@ -647,7 +647,7 @@ class Drone(object):
 	def at(self, command, params):
 		self.__lock.acquire()
 		paramLn = ""
-		if params:	
+		if params:
 			for p in params:
 				if type(p) 	 == int:	paramLn += ","+str(p)
 				elif type(p) == float:	paramLn += ","+str(struct.unpack("i", struct.pack("f", p))[0])
@@ -701,7 +701,7 @@ class Drone(object):
 			termios.tcsetattr(fd, termios.TCSANOW, newattr)
 			oldflags = 		fcntl.fcntl(fd, fcntl.F_GETFL)
 			fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
-			try:        
+			try:
 				try:	key = sys.stdin.read(1)
 				except IOError: pass
 			finally:
@@ -847,21 +847,21 @@ class Drone(object):
 			self.shutdown()
 			sys.exit()
 		return (debug,showCommands)
-			
+
 	# Thread for sending the configuration. It is asynchronous but save.
 	# The configuration-requests are in a queue, the first entry is sent. NavData will contain a "Control command ACK" status-bit,...
 	# ...that configuration is ready to be set. This will be confirmed and the procedure waits until this bit is 0 again; then the next entry will be processed.
-	# In savemode, there is a check whether the configuration has been changed correctly by requesting the current/latest configuration and double-checking this value. 
+	# In savemode, there is a check whether the configuration has been changed correctly by requesting the current/latest configuration and double-checking this value.
 	def __sendConfig(self):
 		sleeptime, getconfigtag, self.__sendConfigRunning = 0.001, False, True
 		while not self.__networksuicide:
 			if len(self.__ConfigQueue):										# If there is something in the queue...
-				if self.__ConfigQueue[0][-1]:	self.sendConfigIDs()		# ...check for multiuserconfig-request (and send it)					
+				if self.__ConfigQueue[0][-1]:	self.sendConfigIDs()		# ...check for multiuserconfig-request (and send it)
 				self.__ConfigSending = True									# Set tag, to show sending is in process
 				qlen = len(self.__ConfigQueue)
 				if qlen > 1:												# Testing for double entries, preventing a ping-pong in save-mode
 					i = 1
-					while True:									   			
+					while True:
 						if i >= qlen:	break
 						if self.__ConfigQueue[0][0].lower() == self.__ConfigQueue[i][0].lower():
 							self.__ConfigQueue.remove(self.__ConfigQueue[0])# Delete double entries
@@ -901,7 +901,7 @@ class Drone(object):
 
 	def __receiveData(self):
 		self.__net_pipes=[]
-		self.__net_pipes.append(self.__NavData_pipe)	
+		self.__net_pipes.append(self.__NavData_pipe)
 		self.__net_pipes.append(self.__Video_pipe)
 		self.__Config_pipe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)	#TCP
 		self.__Config_pipe.setblocking(0)
@@ -917,7 +917,7 @@ class Drone(object):
 					self.__NavData, self.__State, self.__NavDataCount, self.__NavDataTimeStamp, self.__NavDataDecodingTime, self.__NoNavData = self.__NavData_pipe.recv()
 				if ip == self.__vdecode_pipe:		### Receiving imagedata and feedback from videodecode-process
 					cmd, VideoImageCount, VideoImage, VideoDecodeTime = self.__vdecode_pipe.recv()	# Imagedata
-					if self.showCommands and cmd!="Image" :	print "** vDec -> Com :",cmd	
+					if self.showCommands and cmd!="Image" :	print "** vDec -> Com :",cmd
 					if cmd == "suicided":				self.__Video_pipe.send("vd died")		# videodecode-process died
 					if cmd == "foundCodec":				self.__Video_pipe.send("foundCodec")	# the codec of the videostream has been found, do not flood anymore
 					if cmd == "VideoUp":				self.__VideoReady = True				# Imagedata is available
@@ -1009,7 +1009,7 @@ def normalLen8(value):
 	vlen =			min(len(value),8)
 	normal = 		zero[0:8-vlen] + value[0:8]
 	return normal[0:8].lower()
-	
+
 ##################################################################################################
 ###### Receive and Decode Video																######
 ##################################################################################################
@@ -1023,7 +1023,7 @@ def watchdogV(parentPID, ownPID):
 			try:	subprocess.Popen(["kill",str(os.getpid())],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 			except:	pass
 
-# Thread to capture, decode and display the video-stream			
+# Thread to capture, decode and display the video-stream
 def vCapture(VidPipePath, parent_pipe):
 	import cv2
 	global vCruns, commitsuicideV, showVid, lockV, debugV
@@ -1154,7 +1154,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 
 	while not commitsuicideV:
 		in_pipe, out_pipe, dummy2 = select.select(pipes, [], [], 0.1)		# When something is in a pipe...
-		for ip in in_pipe:	
+		for ip in in_pipe:
 			if ip == parent_pipe:
 				cmd = parent_pipe.recv()
 				if showCommands:			print "** Com -> Vid : ",cmd
@@ -1214,7 +1214,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 						saveVideo = True						# ... fall back to savemode
 						parent_pipe.send("saveVideo")			# Inform the main process
 						unsureMode = False
-						foundCodec = True	
+						foundCodec = True
 					parent_pipe.send("vDecProc")
 				elif cmd == "vDecProcON":
 					rawVideoFrame		= ""
@@ -1254,7 +1254,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 							saveVideo = True						# ... fall back to savemode
 							parent_pipe.send("saveVideo")			# Inform the main process
 							unsureMode = False
-							foundCodec = True	
+							foundCodec = True
 						parent_pipe.send("VideoDown")
 						parent_pipe.send("vDecProc")
 						parent_pipe.send("debug")
@@ -1265,7 +1265,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 
 			### Grabs the Videostream and store it in a fifo-pipe for decoding.
 			# The decoder has to guess the videostream-format which takes around 266 video-frames.
-			#    So the stream is preprocessed, I-Frames will cut out while initiation and a flood of copies 
+			#    So the stream is preprocessed, I-Frames will cut out while initiation and a flood of copies
 			#	 will be send to the decoder, till the proper decoder for the videostream is found.
 			# In case of a slow or midspeed-video, only a single or a few copied I-frames are sent to the decoder.
 			if ip == vstream_pipe:
@@ -1293,7 +1293,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 									if foundCodec:		VidStreamSnippet	= videoPackage
 #									else:				VidStreamSnippet   += videoPackage
 								FrameCount += 1
-							else:	
+							else:
 								iFrame				= False
 								VidStreamSnippet	= videoPackage
 								if debugV:
@@ -1311,7 +1311,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 #						print slowVideo, frameStart, saveVideo, foundCodec, lenRawVideoFrame
 
 						if not saveVideo and unsureMode and frameStart and lastIFrame and lenRawVideoFrame>0:
-							if not searchCodecTime:	
+							if not searchCodecTime:
 								searchCodecTime = time.time()			# Video is freshly initiated
 							elif (time.time()-searchCodecTime) > 2.0:	# Waited too long for an MPEG4 stream confirmation...
 								saveVideo = True						# ... fall back to savemode
@@ -1327,7 +1327,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 								except: print "Boost ERROR"
 							burstFrameCount+=1
 							# Give up after to much tries
-							if burstFrameCount>10:		
+							if burstFrameCount>10:
 								parent_pipe.send(("reset",0,0,0))
 								time.sleep(0.2)
 								burstFrameCount=0
@@ -1342,7 +1342,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 
 						# Just show the I-Frame for slow-video-mode (and repeat for less delay in midVideo()-mode)
 						elif not saveVideo and foundCodec and slowVideo and lastIFrame and lenRawVideoFrame>0:
-							for i in range(0,frameRepeat):			write2pipe.write(rawVideoFrame)	
+							for i in range(0,frameRepeat):			write2pipe.write(rawVideoFrame)
 						# Save-Mode
 						elif saveVideo:								write2pipe.write(videoPackage)
 
@@ -1366,9 +1366,9 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 	if debugV:	print "Video-Process :      committed suicide"
 	try:	vstream_pipe.close()
 	except:	pass
-	
 
-	
+
+
 ##################################################################################################
 ###### Receive and Decode NavData															######
 ##################################################################################################
@@ -1445,7 +1445,7 @@ def decode_ID0(packet):		# NAVDATA_DEMO_TAG
 	demo[2][1]	=dataset[5]/1000.0	# phi						roll  in degrees						(float)
 	demo[2][2]	=dataset[6]/1000.0	# psi						yaw   in degrees						(float)
 	demo[3]		=dataset[7]/10.0	# altitude					altitude in centimetres					(int32)
-	demo[4][0]	=dataset[8]			# vx						estimated speed in X in mm/s			(float)	
+	demo[4][0]	=dataset[8]			# vx						estimated speed in X in mm/s			(float)
 	demo[4][1]	=dataset[9]			# vy						estimated speed in Y in mm/s			(float)
 	demo[4][2]	=dataset[10]		# vz						estimated speed in Z in mm/s			(float)
 	demo[5]		=dataset[11]		# num_frames				streamed frame index 					(uint32) (Not used to integrate in video stage)
@@ -1456,7 +1456,7 @@ def decode_ID0(packet):		# NAVDATA_DEMO_TAG
 	for i in range (0,9,1):	demo[10][i]	= dataset[26+i]	# drone_camera_rot			Camera parameters computed by drone		(float matrix33)
 	for i in range (0,3,1):	demo[11][i]	= dataset[35+i]	# drone_camera_trans		Deprecated ! Don't use !				(float vector31)
 	return(demo)
-	
+
 ##### ID = 1 ### "time" #######################################################
 def decode_ID1(packet):			#NAVDATA_TIME_TAG
 	dataset = struct.unpack_from("HHI", packet, 0)
@@ -1467,7 +1467,7 @@ def decode_ID1(packet):			#NAVDATA_TIME_TAG
 	time[0] /= 1000000
 	for i in range(21,32,1):	time[0] += (dataset[2]>>i&1)*(2**(i-21))	# Calculating second-part
 	return(time)
-	
+
 ##### ID = 2 ### "raw_measures" ################################################
 def decode_ID2(packet):			#NAVDATA_RAW_MEASURES_TAG
 	dataset = struct.unpack_from("HHHHHhhhhhIHHHHHHHHHHHHhh", packet, 0)
@@ -1502,7 +1502,7 @@ def decode_ID3(packet):  		#NAVDATA_PHYS_MEASURES_TAG
 	phys_measures[5] = dataset[11]	#uint32    vrefEpson            ref volt Epson gyro [LSB]
 	phys_measures[6] = dataset[12]	#uint32    vrefIDG              ref volt IDG gyro [LSB]
 	dataset = struct.unpack_from(">HHfHffffffIII", packet, 0) 	#switch from little to big-endian
-	for i in range(0,3,1):	phys_measures[2][i] = dataset[4+i]	#float32   phys_accs[xyz] 
+	for i in range(0,3,1):	phys_measures[2][i] = dataset[4+i]	#float32   phys_accs[xyz]
 	for i in range(0,3,1):	phys_measures[3][i] = dataset[7+i]	#float32   phys_gyros[xyz]
 	return(phys_measures)
 
@@ -1642,7 +1642,7 @@ def decode_ID13(packet):		#NAVDATA_VISION_TAG
 	if dataset[1] != 92:	print "*** ERROR : navdata-vision-Options-Package (ID=13) has the wrong size !!!"
 	vision=[0,0,0.0,0.0,0.0,0.0,0,[0.0,0.0,0.0],0,0.0,[0.0,0.0,0.0],[0.0,0.0,0.0],0,0,[0.0,0.0]]
 	vision[0] = dataset[2]				# vision_state FIXME: What are the meanings of the tags ?
-	vision[1] = dataset[3]				# vision_misc							(int32)	
+	vision[1] = dataset[3]				# vision_misc							(int32)
 	vision[2] = dataset[4]				# vision_phi_trim						(float)
 	vision[3] = dataset[5]				# vision_phi_ref_prop					(float)
 	vision[4] = dataset[6]				# vision_theta_trim						(float)
@@ -1661,7 +1661,7 @@ def decode_ID13(packet):		#NAVDATA_VISION_TAG
 	for i in range (0,3,1):
 		vision[11][i] = dataset[17+i]	#  delta_phi/theta/psi					(float)
 	vision[12] =    dataset[20]			# gold_defined							(uint32)
-	vision[13] =    dataset[21]			# gold_reset							(uint32)	
+	vision[13] =    dataset[21]			# gold_reset							(uint32)
 	vision[14][0] = dataset[22]			# gold_x								(float)
 	vision[14][1] = dataset[23]			# gold_y								(float)
 	return(vision)
@@ -1882,7 +1882,7 @@ def getDroneStatus(packet):
 	length =	len(packet)
 	dataset = 	struct.unpack_from("IIII", packet, 0)	# Reading (Header, State, Sequence, Vision)
 	offsetND =	struct.calcsize("IIII")
-	
+
 ###############################=-
 ###	Decode Options-Packages ###=-
 ###############################=-
@@ -1929,7 +1929,7 @@ def getNavdata(packet,choice):
 	return(navdata)
 
 ###############################=-
-###	Threads					###=- 
+###	Threads					###=-
 ###############################=-
 def reconnect(navdata_pipe, commitsuicideND, DroneIP,NavDataPort):
 	if not commitsuicideND:		navdata_pipe.sendto("\x01\x00\x00\x00", (DroneIP, NavDataPort))
@@ -1964,7 +1964,7 @@ def mainloopND(DroneIP,NavDataPort,parent_pipe,parentPID):
 	navdata_pipe.setblocking(0)
 	navdata_pipe.bind(('', NavDataPort))
 	pipes.append(navdata_pipe)
-	
+
 	# start connection
 	reconnect(navdata_pipe, commitsuicideND, DroneIP, NavDataPort)
 	netHeartbeat = threading.Timer(2.0, reconnect, [navdata_pipe,commitsuicideND,DroneIP,NavDataPort,])	# Inits the first Network-Heartbeat (2 secs after disconnection the drone stops sending)
@@ -1974,7 +1974,7 @@ def mainloopND(DroneIP,NavDataPort,parent_pipe,parentPID):
 
 	while not commitsuicideND:
 		in_pipe, out_pipe, dummy2 = select.select(pipes, [], [], 0.5)		# When something is in a pipe...
-		for ip in in_pipe:	
+		for ip in in_pipe:
 			if ip == parent_pipe:
 				cmd = parent_pipe.recv()
 				if showCommands:		print "** Com -> Nav : ",cmd
@@ -2043,8 +2043,8 @@ def mainloopND(DroneIP,NavDataPort,parent_pipe,parentPID):
 	# TestMe
 	try:	navdata_pipe.close()
 	except:	pass
-	
-	
+
+
 ##################################################################################################
 ###### Playground																			######
 ##################################################################################################
@@ -2056,17 +2056,17 @@ if __name__ == "__main__":
 	import time
 	import ps_drone
 
-	drone = ps_drone.Drone()								# Start using drone					
+	drone = ps_drone.Drone()								# Start using drone
 	drone.printBlue("Battery: ")
 
 	drone.startup()											# Connects to drone and starts subprocesses
 	drone.reset()											# Always good, at start
 
 	while drone.getBattery()[0] == -1:	time.sleep(0.1)		# Waits until the drone has done its reset
-	time.sleep(0.5)											# Give it some time to fully awake 
+	time.sleep(0.5)											# Give it some time to fully awake
 
 	drone.printBlue("Battery: "+str(drone.getBattery()[0])+"%  "+str(drone.getBattery()[1]))	# Gives a battery-status
-	
+
 	stop = False
 	while not stop:
 		key = drone.getKey()
