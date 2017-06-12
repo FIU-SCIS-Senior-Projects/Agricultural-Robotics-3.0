@@ -158,17 +158,31 @@ class DCMainApp(object):
     def senActivate(self):
         self.battstat()
         self.altstat()
+        self.velstat()
+        self.gpsstat()
 
     def battstat(self):
-        battDisplay = "Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1])# Battery update variable
-        self.sensor_objs[0].config(text=battDisplay)
-        self.root.after(self.win_height, self.battstat)
+        if str(self.drone.getBattery()[1]) != "OK":
+            self.battdis.config(text="Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1]), fg='red')
+            self.root.after(1000, self.battstat)
+        else:
+            self.battdis.config(text="Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1]))
+            self.root.after(1000, self.battstat)
 
     def altstat(self):
         altDisplay = "Altitude: "+str(self.drone.NavData['altitude'][3]/10)
         self.sensor_objs[1].config(text=altDisplay)
-        self.root.after(10, self.altstat)
+        self.root.after(600, self.altstat)
 
+    def velstat(self):
+    	velDisplay = "Velocity: "+str(numpy.hypot(self.drone.NavData['demo'][4][0],self.drone.NavData['demo'][4][1]))
+    	self.veldis.config(text=velDisplay)
+    	self.root.after(200, self.velstat)
+
+    def gpsstat(self):
+    	gpsDisplay = "Latitude: "+str(self.drone.NavData['gps'][0]) + "\nLongitude: "+str(self.drone.NavData['gps'][1])
+    	self.gpsdis.config(text=gpsDisplay)
+    	self.root.after(600, self.gpsstat)
 
     def take_off(self):
         self.drone.takeoff()
@@ -234,18 +248,18 @@ class DCMainApp(object):
         self.drone.hover()
         time.sleep(1)
         self.drone.land()
-        
-    
+
+
     def goto(self):
         # Maintain steady motion toward a GPS waypoint
         tar_threshold = 2.0
-    
+
         while not self.landing:
             move = self.navigator.get_move()
             movement = move[0]
             tar_dist = move[1]
             print "dist: {}".format(tar_dist)
-    
+
             if tar_dist < tar_threshold:
                 print "landing"
                 self.drone.hover()
@@ -255,49 +269,49 @@ class DCMainApp(object):
                 print "moving: {}".format(movement)
                 #self.drone.move(*movement)
                 time.sleep(1.5)
-    
+
     def smooth(self):
         # Use accelerometer to dynamically adjust x,y speed
         done, adj_spd, adj_ver = False, 0.03, [0, 0]
         test_time, lr_tol, max_spd = 10, 60, 250
         move_def = [ 0.00,  0.15,  0.00,  0.00]
         move_acc = [ 0.00,  0.15,  0.00,  0.00]
-    
+
         # Begin test
         self.drone.takeoff()
         time.sleep(3)
         start_time = time.time()
         self.drone.move(*move_acc)
         print "self.drone.move({})".format(move_acc)
-    
+
         # TODO
         # USE ADJ_VER TO KEEP TRACK OF UNDERGOING CORRECTIONS
         # IN CASE OF OVERCORRECTION, RESET TO DEFAULT MOVE
-    
+
         # Begin corrections
         while not done:
             # Refresh velocity measurement
             vel = self.navigator.get_vel()
-    
+
             # Correct left/right movement
             if   lr_tol <  vel[1]: move_acc[0] += -adj_spd
             elif vel[1] < -lr_tol: move_acc[0] +=  adj_spd
             else:                  move_acc[0]  =  move_def[0]
-    
+
             # Maintain max_spd mm/s
             if   max_spd < vel[0]: move_acc[1] += -adj_spd
             elif vel[0] < max_spd: move_acc[1] +=  adj_spd
             else:                  move_acc[1]  =  move_def[1]
-    
+
             # Perform movement
             self.drone.move(*move_acc)
             print "self.drone.move({})".format(move_acc)
             time.sleep(1)
-    
+
             # Stop after test_time seconds
             if time.time() - start_time > test_time:
                 done = True
-    
+
         # Finish with a land
         self.drone.land()
 
