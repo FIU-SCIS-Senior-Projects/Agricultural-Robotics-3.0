@@ -7,6 +7,7 @@ import math, select, sys, time
 from ps_drone import Drone
 from navigator import Navigator
 from threading import Thread
+from multiprocessing import Process
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -47,6 +48,7 @@ class DCMainApp(object):
         self.control_color_back = "lightslategrey"
         self.sensor_width_per = 0.25
         self.control_width_per = 1.0 - self.sensor_width_per
+        self.out_text = ""
 
         # Derivative Constants
         self.sensor_width = self.sensor_width_per * self.win_width
@@ -75,6 +77,7 @@ class DCMainApp(object):
 
         # TODO ADDED IN MERGE, TO BE CLEANED
         self.landing = False
+        self.connect_proc = None
 
 
         ######################################Batt/Alt/Vel##################################################
@@ -94,14 +97,28 @@ class DCMainApp(object):
                 highlightbackground=self.sensor_color_back, command=self.senActivate)
         self.pushbat.grid(row=1, column=1)
 
+        # Special output label
+        self.output = tk.Label(
+                self.root,
+                text=self.out_text,
+                width=20,
+                height=10,
+                justify=LEFT,
+                anchor="nw",
+                wraplength=self.sensor_width,
+                fg=self.button_text_color,
+                bg=self.sensor_color_back)
+        self.output.config(font=self.button_text)
+        self.output.grid(row=25, column=1, rowspan=5, columnspan=2)
+
         ###################################Drone startup/shutdown##############################################
 
         self.state_objs = []
         self.state_objs_names = ["connect", "takeoff", "land", "shutdown", "quit"]
         self.state_label_text = ["Connect", "Launch", "Land", "Shutdown", "Quit GUI"]
         self.state_commands = [self.d_connect, self.take_off, self.d_land, self.shutdown, self.quit]
-        self.state_rows = [4, 4, 4, 8, 26]
-        self.state_cols = [5, 6, 12, 6, 12]
+        self.state_rows = [25, 4,  4, 8, 26]
+        self.state_cols = [ 6, 6, 12, 6, 12]
 
         for i in range(len(self.state_objs_names)):
             self.state_objs.append(tk.Button(
@@ -360,8 +377,6 @@ class DCMainApp(object):
 
     # drone connection button
     def d_connect(self):
-        #TEST_HOME = [25.758995, -80.373743]
-        #gps_target = [25.758536, -80.374548] # south ecs parking lot
         gps_targets = [
                 [25.758536, -80.374548], # south ecs parking lot
                 [25.757582, -80.373888], # library entrance
@@ -370,14 +385,12 @@ class DCMainApp(object):
         ]
 
         # Initialize drone and navigator objs
-        self.drone = Drone()                #Drone object
+        self.drone = Drone()
         self.drone.startup()
         self.drone.reset()
         self.navigator = Navigator(self.drone)
         time.sleep(0.5)
-        #navigator.set_target(gps_target)
         self.navigator.set_waypoints(gps_targets)
-
 
 def main():
     # Initialize GUI
