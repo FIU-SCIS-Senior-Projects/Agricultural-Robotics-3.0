@@ -34,7 +34,7 @@ except ImportError:
         from queue import Queue, Empty  #python 3 support
 
 class DCMainApp(object):
-    def __init__(self,root,drone,navigator):
+    def __init__(self,root):
         # Modifiable Constants
         self.win_height = 600
         self.win_width  = 900
@@ -56,8 +56,8 @@ class DCMainApp(object):
 
 
         # Argument fields
-        self.drone = drone              #Drone object
-        self.navigator = navigator      #Navigator object
+        self.drone = None              #Drone object
+        self.navigator = None      #Navigator object
         self.root = root
         self.root.title("D.F.C. - Drone Flight Controller")
 
@@ -79,8 +79,8 @@ class DCMainApp(object):
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
-        self.sensor_objs_names = ["battdis", "altdis"]
-        self.sensor_label_text = [" ", " ", " "]
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis"]
+        self.sensor_label_text = [" ", " ", " ", " "]
 
         for i in range(len(self.sensor_objs_names)):
             self.sensor_objs.append(tk.Label(
@@ -97,11 +97,11 @@ class DCMainApp(object):
         ###################################Drone startup/shutdown##############################################
 
         self.state_objs = []
-        self.state_objs_names = ["takeoff", "land", "shutdown", "quit"]
-        self.state_label_text = ["Launch", "Land", "Shutdown", "Quit GUI"]
-        self.state_commands = [self.take_off, self.d_land, self.shutdown, self.quit]
-        self.state_rows = [4, 4, 8, 26]
-        self.state_cols = [6, 12, 6, 12]
+        self.state_objs_names = ["connect", "takeoff", "land", "shutdown", "quit"]
+        self.state_label_text = ["Connect", "Launch", "Land", "Shutdown", "Quit GUI"]
+        self.state_commands = [self.d_connect, self.take_off, self.d_land, self.shutdown, self.quit]
+        self.state_rows = [4, 4, 4, 8, 26]
+        self.state_cols = [5, 6, 12, 6, 12]
 
         for i in range(len(self.state_objs_names)):
             self.state_objs.append(tk.Button(
@@ -162,26 +162,30 @@ class DCMainApp(object):
         self.gpsstat()
 
     def battstat(self):
+        battdis = self.sensor_objs_names.index("battdis")
         if str(self.drone.getBattery()[1]) != "OK":
-            self.battdis.config(text="Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1]), fg='red')
+            self.sensor_objs[battdis].config(text="Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1]), fg='red')
             self.root.after(1000, self.battstat)
         else:
-            self.battdis.config(text="Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1]))
+            self.sensor_objs[battdis].config(text="Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1]))
             self.root.after(1000, self.battstat)
 
     def altstat(self):
+        altdis = self.sensor_objs_names.index("altdis")
         altDisplay = "Altitude: "+str(self.drone.NavData['altitude'][3]/10)
-        self.sensor_objs[1].config(text=altDisplay)
+        self.sensor_objs[altdis].config(text=altDisplay)
         self.root.after(600, self.altstat)
 
     def velstat(self):
-    	velDisplay = "Velocity: "+str(numpy.hypot(self.drone.NavData['demo'][4][0],self.drone.NavData['demo'][4][1]))
-    	self.veldis.config(text=velDisplay)
+        veldis = self.sensor_objs_names.index("veldis")
+    	velDisplay = "Velocity: "+str(np.hypot(self.drone.NavData['demo'][4][0],self.drone.NavData['demo'][4][1]))
+    	self.sensor_objs[veldis].config(text=velDisplay)
     	self.root.after(200, self.velstat)
 
     def gpsstat(self):
+        gpsdis = self.sensor_objs_names.index("gpsdis")
     	gpsDisplay = "Latitude: "+str(self.drone.NavData['gps'][0]) + "\nLongitude: "+str(self.drone.NavData['gps'][1])
-    	self.gpsdis.config(text=gpsDisplay)
+    	self.sensor_objs[gpsdis].config(text=gpsDisplay)
     	self.root.after(600, self.gpsstat)
 
     def take_off(self):
@@ -223,7 +227,7 @@ class DCMainApp(object):
         self.drone.moveDown()
 
     def quit(self):
-        self.drone.shutdown     # Land drone and discard drone object
+        if self.drone != None: self.drone.shutdown     # Land drone and discard drone object
         self.root.destroy()     # Discard Main window object
         print "Exiting GUI"
 
@@ -354,37 +358,32 @@ class DCMainApp(object):
     def d_get_all(self):
         print self.navigator.get_all()
 
+    # drone connection button
+    def d_connect(self):
+        #TEST_HOME = [25.758995, -80.373743]
+        #gps_target = [25.758536, -80.374548] # south ecs parking lot
+        gps_targets = [
+                [25.758536, -80.374548], # south ecs parking lot
+                [25.757582, -80.373888], # library entrance
+                [25.758633, -80.372067], # physics lecture
+                [25.759387, -80.376163], # roundabout
+        ]
+
+        # Initialize drone and navigator objs
+        self.drone = Drone()                #Drone object
+        self.drone.startup()
+        self.drone.reset()
+        self.navigator = Navigator(self.drone)
+        time.sleep(0.5)
+        #navigator.set_target(gps_target)
+        self.navigator.set_waypoints(gps_targets)
+
+
 def main():
-    #TEST_HOME = [25.758995, -80.373743]
-    #gps_target = [25.758536, -80.374548] # south ecs parking lot
-    gps_targets = [
-            [25.758536, -80.374548], # south ecs parking lot
-            [25.757582, -80.373888], # library entrance
-            [25.758633, -80.372067], # physics lecture
-            [25.759387, -80.376163], # roundabout
-    ]
-
-
-    # Initialize drone and navigator objs
-    drone = Drone()                #Drone object
-    drone.startup()
-    drone.reset()
-    navigator = Navigator(drone)
-    time.sleep(0.5)
-    #navigator.set_target(gps_target)
-    navigator.set_waypoints(gps_targets)
-
-    # Print battery
-    battery = drone.getBattery()
-    while battery[0] == -1:
-        time.sleep(0.1)
-        battery = drone.getBattery()
-    print battery
-
     # Initialize GUI
     root = tk.Tk()
     root.geometry("900x600")                #GUI window dimensions
-    drone_GUI = DCMainApp(root, drone, navigator)
+    drone_GUI = DCMainApp(root)
     #root.protocol("WM_DELETE_WINDOW", drone_GUI.quit)
 
     # Run GUI
