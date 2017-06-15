@@ -1,12 +1,10 @@
 from Tkinter import *
-import ps_drone
-#from itertools import islice
-#from subprocess import Popen, PIPE
-#from textwrap import dedent
-import math, select, sys, time
+from PIL import Image, ImageTk
+import cv2, math, select, sys, time
 from ps_drone import Drone
 from navigator import Navigator
-from threading import Thread
+from viewer import Camera
+from threading import Event, Thread
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -34,10 +32,10 @@ except ImportError:
         from queue import Queue, Empty  #python 3 support
 
 class DCMainApp(object):
-    def __init__(self,root,drone,navigator):
+    def __init__(self,root,drone,navigator,camera):
         # Modifiable Constants
         self.win_height = 600
-        self.win_width  = 900
+        self.win_width  = 1280
         self.button_width = 9
         self.button_text_color = "blue"
         self.button_text_face = "Arial"
@@ -45,33 +43,47 @@ class DCMainApp(object):
         self.button_text_style = "bold"
         self.sensor_color_back = "lightgrey"
         self.control_color_back = "lightslategrey"
-        self.sensor_width_per = 0.25
-        self.control_width_per = 1.0 - self.sensor_width_per
+        self.sensor_width_per = 0.15
+        self.camera_width_per = 0.33
+        self.control_width_per = 1.0 - self.sensor_width_per - self.camera_width_per
 
         # Derivative Constants
         self.sensor_width = self.sensor_width_per * self.win_width
         self.control_width = self.control_width_per * self.win_width
+        self.camera_width = self.camera_width_per * self.win_width
         self.button_text = (
                 self.button_text_face, self.button_text_size, self.button_text_style)
 
 
         # Argument fields
-        self.drone = drone              #Drone object
-        self.navigator = navigator      #Navigator object
         self.root = root
         self.root.title("D.F.C. - Drone Flight Controller")
+        self.drone = drone              #Drone object
+        self.navigator = navigator      #Navigator object
+        self.camera = camera            #Camera object
 
         # Live data
+        self.camera.start()
         self.startupside1 = tk.Frame(self.root)    #Mainwindow left
         self.startupside1.grid(row=0, column=0, columnspan=3, rowspan=30)
         self.startupside1.config(width=self.sensor_width,
                 height=self.win_height, background=self.sensor_color_back)
 
         # Controller
-        self.controllerside = tk.Frame(self.root)  #Mainwindow right
+        self.controllerside = tk.Frame(self.root)  #Mainwindow center
         self.controllerside.grid(row=0, column=3, columnspan=30, rowspan=30)
         self.controllerside.config(width=self.control_width,
                 height=self.win_height, background=self.control_color_back)
+
+        # Camera
+        self.cameraside = tk.Frame(self.root)       #Mainwindow right
+        self.cameraside.grid(row=0, column=33, columnspan=20, rowspan=30)
+        self.cameraside.config(width=self.camera_width,
+                height=self.win_height, background=self.sensor_color_back)
+        self.cam_event = Event()
+        self.cam_thread = Thread(target=self.cam_loop, args=())
+        self.cam_thread.daemon = True
+        self.cam_thread.start()
 
         # TODO ADDED IN MERGE, TO BE CLEANED
         self.landing = False
@@ -162,12 +174,36 @@ class DCMainApp(object):
     def battstat(self):
         battDisplay = "Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1])# Battery update variable
         self.sensor_objs[0].config(text=battDisplay)
-        self.root.after(self.win_height, self.battstat)
+        self.root.after(600, self.battstat)
 
     def altstat(self):
         altDisplay = "Altitude: "+str(self.drone.NavData['altitude'][3]/10)
         self.sensor_objs[1].config(text=altDisplay)
         self.root.after(10, self.altstat)
+
+    def cam_loop(self):
+        self.panel_cam = None
+        try:
+            while not self.cam_event.is_set():
+                img = self.drone.VideoImage
+                #img = self.camera.getFrame()
+                #img = cv2.imread("test.png")
+                img = cv2.resize(img, (640, 360))
+                img = Image.fromarray(img)
+                img = ImageTk.PhotoImage(img)
+
+                if self.panel_cam is None:
+                    self.panel_cam = tk.Label(self.root, image = img)
+
+                self.panel_cam.image = img
+                self.panel_cam.configure(
+                        height = 360, width = 640, image = img)
+                self.panel_cam.grid(
+                        row=0, column=34,
+                        rowspan=30, columnspan=20)
+
+        except RuntimeError, e:
+            print("Runtime Error\n{}".format(e))
 
 
     def take_off(self):
@@ -211,6 +247,7 @@ class DCMainApp(object):
     def quit(self):
         self.drone.shutdown     # Land drone and discard drone object
         self.root.destroy()     # Discard Main window object
+        self.camera.release()   # Shutdown camera
         print "Exiting GUI"
 
     def weeble(self):
@@ -353,6 +390,7 @@ def main():
     drone.startup()
     drone.reset()
     navigator = Navigator(drone)
+    camera = Camera(drone)
     time.sleep(0.5)
     navigator.set_target(gps_target)
 
@@ -365,8 +403,8 @@ def main():
 
     # Initialize GUI
     root = tk.Tk()
-    root.geometry("900x600")                #GUI window dimensions
-    drone_GUI = DCMainApp(root, drone, navigator)
+    root.geometry("1280x600")                #GUI window dimensions
+    drone_GUI = DCMainApp(root, drone, navigator, camera)
     #root.protocol("WM_DELETE_WINDOW", drone_GUI.quit)
 
     # Run GUI
