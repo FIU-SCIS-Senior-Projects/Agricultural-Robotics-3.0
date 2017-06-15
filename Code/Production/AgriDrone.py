@@ -343,9 +343,12 @@ class DCMainApp(object):
 def main():
     #TEST_HOME = [25.758995, -80.373743]
     #gps_target = [25.758536, -80.374548] # south ecs parking lot
-    gps_target = [25.757582, -80.373888] # library entrance
-    #gps_target = [25.758633, -80.372067] # physics lecture
-    #gps_target = [25.759387, -80.376163] # roundabout
+    gps_targets = [
+            [25.758536, -80.374548], # south ecs parking lot
+            [25.757582, -80.373888], # library entrance
+            [25.758633, -80.372067], # physics lecture
+            [25.759387, -80.376163], # roundabout
+    ]
 
 
     # Initialize drone and navigator objs
@@ -354,7 +357,8 @@ def main():
     drone.reset()
     navigator = Navigator(drone)
     time.sleep(0.5)
-    navigator.set_target(gps_target)
+    #navigator.set_target(gps_target)
+    navigator.set_waypoints(gps_targets)
 
     # Print battery
     battery = drone.getBattery()
