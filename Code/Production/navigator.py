@@ -22,7 +22,9 @@ class Navigator:
         self.__mag_avg = [-14, 13] # Manually calculated
         self.__mag_acc = 6  # Points to record during calibration
         self.__samples = deque(maxlen = self.__SAMP_NUM) # Sample queue
-        self.__tar_gps = [0.0, 0.0] # Target's gps coordinate
+        self.__targets = [] # Target list
+        self.__waypoints = deque() # Waypoint Queue
+        self.__tar_gps = [0.0, 0.0] # Next target's gps coordinate
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
         self.__stats = {}   # Stats dict
@@ -127,12 +129,33 @@ class Navigator:
 
         # Set new stats
         return stats
+
+    def __calc_waypoints(self):
+        """Takes waypoint list, adds shortest route in order to queue"""
+        # Current position is the first point of the path
+        self.__set_stats()
+        start = self.__stats["gps"]
+        temp_start = start
+
+        # Use NN to find shortest paths, queue targets as they're found
+        while self.__targets:
+            shortest = 1.0e999 # infinity
+            for tar in self.__targets:
+                dist = self.__calc_distance(temp_start, tar)
+                if dist < shortest: shortest, start = dist, tar
+            self.__waypoints.append(start)
+            self.__targets.remove(start)
+            temp_start = start
+
+    def __next_tar(self):
+        """Pop the next coordinate from the queue to current target"""
+        try: self.__tar_gps = self.__waypoints.popleft()
+        except IndexError: self.__tar_gps = self.__home
     
-    def __calc_distance(self):
+    def __calc_distance(self, start, finish):
         """Calculate distance to target"""
         r = 6371e3  # earth's radius in m
-        x = self.__stats["gps"]
-        y = self.__tar_gps
+        x, y = start, finish
 
         # Convert GPS degrees to radians
         phi1 = math.radians(x[0])
@@ -144,19 +167,18 @@ class Navigator:
         a = math.sin(dphi / 2) * math.sin(dphi / 2)
         a += math.cos(phi1) * math.cos(phi2)
         a *= (math.sin(dlam / 2) * math.sin(dlam / 2))
-        self.__tar_dist = 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     
-    def __calc_heading(self):
+    def __calc_heading(self, start, finish):
         """Calculate necessary heading for straight flight to target"""
-        x = self.__stats["gps"]
-        y = self.__tar_gps
+        x, y = start, finish
 
         # Initial heading required for 'Great circle' traversal
         q = math.sin(y[1] - x[1]) * math.cos(y[0])
         p = math.cos(x[0]) * math.sin(y[0])
         p -= math.sin(x[0]) * math.cos(y[0]) * math.cos(y[1] - x[1])
         b = math.atan2(q, p) * 180.0 / math.pi
-        self.__tar_angle = (b + 360.0) % 360.0
+        return (b + 360.0) % 360.0
     
     def __calc_mag(self):
         """Rotates the drone to acquire mag data to use in normalization."""
@@ -192,8 +214,8 @@ class Navigator:
         self.__set_stats()
 
         # Get angle of required turn
-        self.__calc_heading()
-        self.__calc_distance()
+        self.__tar_angle = self.__calc_heading(self.__stats["gps"], self.__tar_gps)
+        self.__tar_dist = self.__calc_distance(self.__stats["gps"], self.__tar_gps)
         angle_diff = self.__drone.angleDiff(
                 self.__stats["deg"], self.__tar_angle)
 
@@ -214,6 +236,10 @@ class Navigator:
 
     def set_target(self, new_target):
         self.__tar_gps = new_target
+
+    def set_waypoints(self, waypoints):
+        for waypoint in waypoints: self.__targets.append(waypoint)
+        self.__calc_waypoints()
 
 
     # Diagnostic functions
