@@ -241,6 +241,10 @@ class Navigator:
         for waypoint in waypoints: self.__targets.append(waypoint)
         self.__calc_waypoints()
 
+    def get_nav(self):
+        self.__set_stats()
+        return self.__stats
+
 
     # Diagnostic functions
     def get_home(self):
@@ -257,10 +261,6 @@ class Navigator:
     def get_deg(self):
         self.__set_stats()
         return self.__stats["deg"]
-
-    def get_all(self):
-        self.__set_stats()
-        return self.__stats
 
     def get_vel(self):
         self.__set_stats()
