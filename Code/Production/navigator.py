@@ -24,7 +24,7 @@ class Navigator:
         self.__samples = deque(maxlen = self.__SAMP_NUM) # Sample queue
         self.__targets = [] # Target list
         self.__waypoints = deque() # Waypoint Queue
-        self.__tar_gps = [0.0, 0.0] # Next target's gps coordinate
+        self.__tar_gps = None # Next target's gps coordinate
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
         self.__stats = {}   # Stats dict
@@ -131,10 +131,12 @@ class Navigator:
         return stats
 
     def __calc_waypoints(self):
-        """Takes waypoint list, adds shortest route in order to queue"""
+        """Takes target list, adds shortest route in order to waypoint queue"""
         # Current position is the first point of the path
-        self.__set_stats()
-        start = self.__stats["gps"]
+        if self.__tar_gps == None:
+            self.__set_stats()
+            start = self.__stats["gps"]
+        else: start = self.__tar_gps
         temp_start = start
 
         # Use NN to find shortest paths, queue targets as they're found
@@ -211,6 +213,7 @@ class Navigator:
 
     def get_move(self):
         """Perform calculations to get arguments for a drone move"""
+        if self.__tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], 0.0)
         self.__set_stats()
 
         # Get angle of required turn
@@ -234,10 +237,15 @@ class Navigator:
         # Return movement list and distance to target
         return ([0.0, move_speed, 0.0, turn_speed], self.__tar_dist)
 
-    def set_target(self, new_target):
-        self.__tar_gps = new_target
+    def add_waypoints(self, waypoints):
+        """ waypoints: list of iterables, [0]:lat [1]:lon
 
-    def set_waypoints(self, waypoints):
+            Receiving a list of additional waypoints will
+            add them to the existing waypoints, then
+            recalculate route to reach all current
+            waypoints. This does not interrupt the drone's
+            current target.
+        """
         for waypoint in waypoints: self.__targets.append(waypoint)
         self.__calc_waypoints()
 
@@ -245,43 +253,20 @@ class Navigator:
         self.__set_stats()
         return self.__stats
 
-
-    # Diagnostic functions
     def get_home(self):
         return self.__home
 
     def set_home(self, new_home):
         self.__home = new_home
 
-    def get_mag(self):
-        self.__set_stats()
-        #return self.__drone.NavData["magneto"][0]
-        return self.__stats["mfu"]
-
-    def get_deg(self):
-        self.__set_stats()
-        return self.__stats["deg"]
-
-    def get_vel(self):
-        self.__set_stats()
-        return self.__stats["vel"]
-
-    def get_acc(self):
-        self.__set_stats()
-        return self.__stats["acc"]
-
-    def get_demo(self):
-        self.__set_stats()
-        data = self.__stats["pry"]
-        return "pitch: {}\nroll: {}\nyaw: {}".format(
-                data[0], data[1], data[2])
-
-    def get_gps(self):
-        self.__set_stats()
-        return self.__stats["gps"]
-
-
-
+    def set_target(self, new_target):
+        """If the drone is already moving toward a target,
+           move current target to waypoint queue and move
+           to new target. """
+        old_target = self.__tar_gps
+        self.__tar_gps = new_target
+        if old_target != None:
+            self.add_waypoints([old_target])
 
 
 
