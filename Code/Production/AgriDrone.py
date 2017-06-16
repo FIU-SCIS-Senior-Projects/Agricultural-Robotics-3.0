@@ -77,7 +77,7 @@ class DCMainApp(object):
 
         # TODO ADDED IN MERGE, TO BE CLEANED
         self.landing = False
-        self.connect_proc = None
+        self.threshold = 2.0
 
 
         ######################################Batt/Alt/Vel##################################################
@@ -92,20 +92,6 @@ class DCMainApp(object):
                     fg=self.button_text_color,bg=self.sensor_color_back))
             self.sensor_objs[i].config(font=self.button_text)
             self.sensor_objs[i].grid(row=i+2, column=1)
-
-        # Special output label
-        self.output = tk.Label(
-                self.root,
-                text=self.out_text,
-                width=20,
-                height=10,
-                justify=LEFT,
-                anchor="nw",
-                wraplength=self.sensor_width,
-                fg="black",
-                bg=self.sensor_color_back)
-        self.output.config(font=("Arial", 11))
-        self.output.grid(row=25, column=1, rowspan=5, columnspan=2)
 
         ###################################Drone startup/shutdown##############################################
 
@@ -167,21 +153,8 @@ class DCMainApp(object):
             self.y_objs[i].config(width=self.button_width,font=self.button_text)
             self.y_objs[i].grid(row=6,column=self.y_cols[i])
 
-        # Output monitor label
-        self.getout()
-
 
     ###################################GUI Drone button functions########################################
-    def getout(self):
-        self.output.config(text=self.out_text)
-        self.root.after(100, self.getout)
-
-    def setout(self, new):
-        out = self.out_text.splitlines()
-        out.append("{}".format(new))
-        while len(out) > 3: out.remove(out[0])
-        for line in out: self.out_text += "{}\n".format(line)
-
     def senActivate(self):
         self.battstat()
         self.altstat()
@@ -286,7 +259,6 @@ class DCMainApp(object):
 
     def goto(self):
         # Maintain steady motion toward a GPS waypoint
-        tar_threshold = 2.0
 
         while not self.landing:
             move = self.navigator.get_move()
@@ -294,14 +266,14 @@ class DCMainApp(object):
             tar_dist = move[1]
             print "dist: {}".format(tar_dist)
 
-            if tar_dist < tar_threshold:
+            if tar_dist < self.threshold:
                 print "landing"
                 self.drone.hover()
                 self.drone.land()
                 self.landing = True
             else:
                 print "moving: {}".format(movement)
-                #self.drone.move(*movement)
+                self.drone.move(*movement)
                 time.sleep(1.5)
 
     def smooth(self):
