@@ -93,10 +93,6 @@ class DCMainApp(object):
             self.sensor_objs[i].config(font=self.button_text)
             self.sensor_objs[i].grid(row=i+2, column=1)
 
-        self.pushbat = tk.Button(self.root, text="Activate Sensors Display",
-                highlightbackground=self.sensor_color_back, command=self.senActivate)
-        self.pushbat.grid(row=1, column=1)
-
         # Special output label
         self.output = tk.Label(
                 self.root,
@@ -106,9 +102,9 @@ class DCMainApp(object):
                 justify=LEFT,
                 anchor="nw",
                 wraplength=self.sensor_width,
-                fg=self.button_text_color,
+                fg="black",
                 bg=self.sensor_color_back)
-        self.output.config(font=self.button_text)
+        self.output.config(font=("Arial", 11))
         self.output.grid(row=25, column=1, rowspan=5, columnspan=2)
 
         ###################################Drone startup/shutdown##############################################
@@ -171,7 +167,21 @@ class DCMainApp(object):
             self.y_objs[i].config(width=self.button_width,font=self.button_text)
             self.y_objs[i].grid(row=6,column=self.y_cols[i])
 
+        # Output monitor label
+        self.getout()
+
+
     ###################################GUI Drone button functions########################################
+    def getout(self):
+        self.output.config(text=self.out_text)
+        self.root.after(100, self.getout)
+
+    def setout(self, new):
+        out = self.out_text.splitlines()
+        out.append("{}".format(new))
+        while len(out) > 3: out.remove(out[0])
+        for line in out: self.out_text += "{}\n".format(line)
+
     def senActivate(self):
         self.battstat()
         self.altstat()
@@ -181,11 +191,14 @@ class DCMainApp(object):
     def battstat(self):
         battdis = self.sensor_objs_names.index("battdis")
         if str(self.drone.getBattery()[1]) != "OK":
-            self.sensor_objs[battdis].config(text="Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1]), fg='red')
-            self.root.after(1000, self.battstat)
+            self.sensor_objs[battdis].config(fg="red")
         else:
-            self.sensor_objs[battdis].config(text="Battery: "+str(self.drone.getBattery()[0])+ "% " + "\nState: " +str(self.drone.getBattery()[1]))
-            self.root.after(1000, self.battstat)
+            self.sensor_objs[battdis].config(fg="blue")
+
+        self.sensor_objs[battdis].config(text="Battery: {}%\nState: {}".format(
+            self.drone.getBattery()[0],
+            self.drone.getBattery()[1]))
+        self.root.after(1000, self.battstat)
 
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
@@ -336,11 +349,6 @@ class DCMainApp(object):
         # Finish with a land
         self.drone.land()
 
-    def d_shutdown_land(self):
-        self.landing = True
-        in_list.remove(in_list[0])
-        self.drone.shutdown()
-
     # flight functions
     def d_smooth(self):
         moving = Thread(target=self.smooth, args=())
@@ -389,8 +397,8 @@ class DCMainApp(object):
         self.drone.startup()
         self.drone.reset()
         self.navigator = Navigator(self.drone)
-        time.sleep(0.5)
         self.navigator.set_waypoints(gps_targets)
+        self.senActivate()
 
 def main():
     # Initialize GUI
