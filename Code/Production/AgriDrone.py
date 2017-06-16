@@ -48,7 +48,7 @@ class DCMainApp(object):
         self.control_color_back = "lightslategrey"
         self.sensor_width_per = 0.25
         self.control_width_per = 1.0 - self.sensor_width_per
-        self.out_text = ""
+        self.stat_refresh = 200 # ms
 
         # Derivative Constants
         self.sensor_width = self.sensor_width_per * self.win_width
@@ -175,21 +175,27 @@ class DCMainApp(object):
 
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
-        altDisplay = "Altitude: "+str(self.drone.NavData['altitude'][3]/10)
+        altDisplay = "Altitude: {}".format(
+                self.navigator.get_nav()["alt"])
         self.sensor_objs[altdis].config(text=altDisplay)
-        self.root.after(600, self.altstat)
+        self.root.after(self.stat_refresh, self.altstat)
 
     def velstat(self):
         veldis = self.sensor_objs_names.index("veldis")
-    	velDisplay = "Velocity: "+str(np.hypot(self.drone.NavData['demo'][4][0],self.drone.NavData['demo'][4][1]))
+    	velDisplay = "Velocity: {}".format(
+                np.hypot(
+                    self.navigator.get_nav()["vel"][0],
+                    self.navigator.get_nav()["vel"][1]))
     	self.sensor_objs[veldis].config(text=velDisplay)
-    	self.root.after(200, self.velstat)
+    	self.root.after(self.stat_refresh, self.velstat)
 
     def gpsstat(self):
         gpsdis = self.sensor_objs_names.index("gpsdis")
-    	gpsDisplay = "Latitude: "+str(self.drone.NavData['gps'][0]) + "\nLongitude: "+str(self.drone.NavData['gps'][1])
+        gpsDisplay = "Latitude: {}\nLongitude: {}".format(
+                self.drone.NavData["gps"][0],
+                self.drone.NavData["gps"][1])
     	self.sensor_objs[gpsdis].config(text=gpsDisplay)
-    	self.root.after(600, self.gpsstat)
+    	self.root.after(self.stat_refresh, self.gpsstat)
 
     def take_off(self):
         self.drone.takeoff()
