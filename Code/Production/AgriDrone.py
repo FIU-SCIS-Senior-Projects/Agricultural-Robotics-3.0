@@ -375,7 +375,7 @@ class DCMainApp(object):
         self.drone.startup()
         self.drone.reset()
         self.navigator = Navigator(self.drone)
-        self.navigator.set_waypoints(gps_targets)
+        self.navigator.add_waypoints(gps_targets)
         self.senActivate()
 
 def main():
