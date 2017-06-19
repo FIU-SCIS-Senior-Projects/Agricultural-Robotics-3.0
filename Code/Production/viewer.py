@@ -4,33 +4,32 @@ from threading import Thread
 class Camera:
     def __init__(self, drone):
         # Configure drone video
-        self.drone = drone
-        self.drone.frontCam()
-        self.drone.midVideo()
-        self.drone.sdVideo()
-        self.drone.startVideo()
+        self.__drone = drone
+        self.__drone.frontCam()
+        self.__drone.midVideo()
+        self.__drone.sdVideo()
+        self.__drone.startVideo()
 
         # Configure camera settings
-        self.currentFrame = None
-        self.CAMERA_WIDTH = 640
-        self.CAMERA_HEIGHT = 360
-        self.CAMERA_NUM = 0
-        self.capture = cv2.VideoCapture('tcp://192.168.1.1:5555')
-        self.capture.set(cv2.CAP_PROP_FRAME_WIDTH,self.CAMERA_WIDTH)
-        self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT,self.CAMERA_HEIGHT)
+        self.__currentFrame = None
+        self.__CAMERA_WIDTH = 640
+        self.__CAMERA_HEIGHT = 360
+        self.__capture = cv2.VideoCapture('tcp://192.168.1.1:5555')
+        self.__capture.set(cv2.CAP_PROP_FRAME_WIDTH,self.__CAMERA_WIDTH)
+        self.__capture.set(cv2.CAP_PROP_FRAME_HEIGHT,self.__CAMERA_HEIGHT)
 
     def start(self):
-        cam = Thread(target=self.updateFrame, args=())
+        cam = Thread(target=self.__updateFrame, args=())
         cam.daemon = True
         cam.start()
 
-    def updateFrame(self):
+    def __updateFrame(self):
         while(True):
-            ret, self.currentFrame = self.capture.read()
-            while not ret: ret, frame = self.capture.read()
+            ret, self.__currentFrame = self.__capture.read()
+            while not ret: ret, frame = self.__capture.read()
 
     def getFrame(self):
-        return self.currentFrame
+        return self.__currentFrame
 
     def release(self):
-        return self.capture.release()
+        return self.__capture.release()
