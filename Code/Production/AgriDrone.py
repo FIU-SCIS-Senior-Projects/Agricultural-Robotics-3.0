@@ -98,10 +98,6 @@ class DCMainApp(object):
                 row=0, column=34,
                 columnspan=30, rowspan=30,
                 sticky=tk.W+tk.N)
-        #self.cam_event = Event()
-        #self.cam_thread = Thread(target=self.cam_loop, args=())
-        #self.cam_thread.daemon = True
-        #self.cam_thread.start()
 
         # TODO ADDED IN MERGE, TO BE CLEANED
         self.landing = False
@@ -182,10 +178,6 @@ class DCMainApp(object):
             self.y_objs[i].grid(row=6,column=self.y_cols[i])
 
 
-        ###### CAMERA ######
-        #self.panel_cam = tk.Label(self.root, height=400, width=640)
-        #self.panel_cam.grid(row=30, column=35, rowspan=50, columnspan=20)
-
     ###################################GUI Drone button functions########################################
     def senActivate(self):
         self.battstat()
@@ -211,33 +203,9 @@ class DCMainApp(object):
         cam_img = cv2.resize(cam_img, (640, 360))
         cam_img = Image.fromarray(cam_img)
         cam_img = ImageTk.PhotoImage(cam_img)
-
         self.panel_cam.config(image = cam_img)
         self.panel_cam.cam_img = cam_img
-        #self.panel_cam.config(image = cam_img)
         self.root.after(100, self.camstat)
-
-#    def cam_loop(self):
-#        self.panel_cam = None
-#        try:
-#            while not self.cam_event.is_set():
-#                img = self.camera.getFrame()
-#                img = cv2.resize(img, (640, 360))
-#                img = Image.fromarray(img)
-#                img = ImageTk.PhotoImage(img)
-#
-#                if self.panel_cam is None:
-#                    self.panel_cam = tk.Label(self.root, image = img)
-#
-#                self.panel_cam.image = img
-#                self.panel_cam.configure(
-#                        height = 360, width = 640, image = img)
-#                self.panel_cam.grid(
-#                        row=0, column=34,
-#                        rowspan=30, columnspan=20)
-#
-#        except RuntimeError, e:
-#            print("Runtime Error\n{}".format(e))
 
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
