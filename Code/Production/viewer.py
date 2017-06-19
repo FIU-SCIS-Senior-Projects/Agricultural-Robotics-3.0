@@ -18,6 +18,7 @@ class Camera:
         self.__capture.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT,self.__CAMERA_HEIGHT)
 
         # Configure computer vision
+        self.__mono = False
         self.__edges = False
         self.__corners = False
         self.__colors = False
