@@ -237,15 +237,20 @@ class Navigator:
         # Return movement list and distance to target
         return ([0.0, move_speed, 0.0, turn_speed], self.__tar_dist)
 
-    def add_waypoints(self, waypoints):
+    def mod_waypoints(self, waypoints, reset = False, interrupt = False):
         """ waypoints: list of iterables, [0]:lat [1]:lon
 
-            Receiving a list of additional waypoints will
-            add them to the existing waypoints, then
-            recalculate route to reach all current
-            waypoints. This does not interrupt the drone's
-            current target.
+            Adds new waypoints, then recalculates route to reach
+            all current waypoints.
+            
+            Setting "reset" to True will clear current waypoints
+            before adding new ones.
+            
+            Setting "interrupt" to True will clear the current
+            target, forcing a recalculation of next target.
         """
+        if reset: del self.__targets[:]
+        if interrupt: self.__tar_gps = None
         for waypoint in waypoints: self.__targets.append(waypoint)
         self.__calc_waypoints()
 
@@ -266,7 +271,7 @@ class Navigator:
         old_target = self.__tar_gps
         self.__tar_gps = new_target
         if old_target != None:
-            self.add_waypoints([old_target])
+            self.mod_waypoints([old_target])
 
 
 
