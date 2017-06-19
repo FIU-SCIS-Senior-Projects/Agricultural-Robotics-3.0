@@ -62,7 +62,7 @@ class DCMainApp(object):
                 self.button_text_face, self.button_text_size, self.button_text_style)
 
 
-        # Argument fields
+        # Object fields
         self.drone = None              #Drone object
         self.navigator = None      #Navigator object
         self.camera = None            #Camera object
@@ -80,6 +80,7 @@ class DCMainApp(object):
         self.controllerside.grid(row=0, column=3, columnspan=30, rowspan=30)
         self.controllerside.config(width=self.control_width,
                 height=self.win_height, background=self.control_color_back)
+        self.controller_manual = Event()
 
         # Camera
         self.cameraside = tk.Frame(self.root)       #Mainwindow right
@@ -246,41 +247,53 @@ class DCMainApp(object):
         self.drone.takeoff()
 
     def d_land(self):
+        self.controller_manual.set()
         self.drone.land()
 
     def shutdown(self):
+        self.controller_manual.set()
         self.drone.shutdown()
 
     def d_hover(self):
+        self.controller_manual.set()
         self.drone.hover()
 
     def d_forward(self):
-        self.drone.moveForward()
+        self.controller_manual.set()
+        #self.drone.moveForward()
 
     def d_backward(self):
+        self.controller_manual.set()
         self.drone.moveBackward()
 
     def d_left(self):
+        self.controller_manual.set()
         self.drone.moveLeft()
 
     def d_right(self):
+        self.controller_manual.set()
         self.drone.moveRight()
 
     def d_turnright(self):
+        self.controller_manual.set()
         xr = 0.50
         self.drone.turnRight(xr)
 
     def d_turnleft(self):
+        self.controller_manual.set()
         xl = 0.50
         self.drone.turnLeft(xl)
 
     def d_moveup(self):
+        self.controller_manual.set()
         self.drone.moveUp()
 
     def d_movedown(self):
+        self.controller_manual.set()
         self.drone.moveDown()
 
     def quit(self):
+        self.controller_manual.set()
         if self.drone != None: self.drone.shutdown     # Land drone and discard drone object
         if self.camera != None: self.camera.release()   # Shutdown camera
         self.root.destroy()     # Discard Main window object
@@ -289,6 +302,7 @@ class DCMainApp(object):
     def weeble(self):
         # Test if movements must be 'cancelled out'
         # forward, stop, right, stop, up, stop, lturn, stop
+        self.controller_manual.clear()
         moves = [[ 0.0,  0.2,  0.0,  0.0],
                  [ 0.0, -0.2,  0.0,  0.0],
                  [ 0.2,  0.0,  0.0,  0.0],
@@ -301,6 +315,7 @@ class DCMainApp(object):
         self.drone.takeoff()
         time.sleep(3)
         for move in moves:
+            if self.controller_manual.is_set(): return 0
             print "moving {}".format(move)
             self.drone.move(*move)
             time.sleep(2)
@@ -312,7 +327,8 @@ class DCMainApp(object):
     def goto(self):
         # Maintain steady motion toward a GPS waypoint
 
-        while not self.landing:
+        self.controller_manual.clear()
+        while not self.landing and not self.controller_manual.is_set():
             move = self.navigator.get_move()
             movement = move[0]
             tar_dist = move[1]
@@ -330,16 +346,17 @@ class DCMainApp(object):
 
     def smooth(self):
         # Use accelerometer to dynamically adjust x,y speed
+        self.controller_manual.clear()
         done, adj_spd, adj_ver = False, 0.03, [0, 0]
         test_time, lr_tol, max_spd = 10, 60, 250
         move_def = [ 0.00,  0.15,  0.00,  0.00]
         move_acc = [ 0.00,  0.15,  0.00,  0.00]
 
         # Begin test
-        self.drone.takeoff()
+        #self.drone.takeoff()
         time.sleep(3)
         start_time = time.time()
-        self.drone.move(*move_acc)
+        #self.drone.move(*move_acc)
         print "self.drone.move({})".format(move_acc)
 
         # TODO
@@ -347,9 +364,9 @@ class DCMainApp(object):
         # IN CASE OF OVERCORRECTION, RESET TO DEFAULT MOVE
 
         # Begin corrections
-        while not done:
+        while not done and not self.controller_manual.is_set():
             # Refresh velocity measurement
-            vel = self.navigator.get_vel()
+            vel = self.navigator.get_nav()["vel"]
 
             # Correct left/right movement
             if   lr_tol <  vel[1]: move_acc[0] += -adj_spd
@@ -362,7 +379,7 @@ class DCMainApp(object):
             else:                  move_acc[1]  =  move_def[1]
 
             # Perform movement
-            self.drone.move(*move_acc)
+            #self.drone.move(*move_acc)
             print "self.drone.move({})".format(move_acc)
             time.sleep(1)
 
@@ -371,9 +388,9 @@ class DCMainApp(object):
                 done = True
 
         # Finish with a land
-        self.drone.land()
+        #self.drone.land()
 
-    # flight functions
+    # flight buttons
     def d_smooth(self):
         moving = Thread(target=self.smooth, args=())
         moving.daemon = True
@@ -390,9 +407,6 @@ class DCMainApp(object):
         moving.start()
 
     # debugging functions
-    def d_take_off(self):
-        self.drone.takeoff()
-
     def d_calibrate_all(self):
         self.navigator.calibrate_drone(True)
 
@@ -421,13 +435,13 @@ class DCMainApp(object):
         self.drone.startup()
         self.drone.reset()
         self.navigator = Navigator(self.drone)
-        self.navigator.add_waypoints(gps_targets)
+        self.navigator.mod_waypoints(gps_targets, reset=True)
         self.camera = Camera(self.drone)
         self.camera.start()
         self.senActivate()
 
     def d_test(self):
-        return 0
+        self.d_smooth()
 
 def main():
     # Initialize GUI
