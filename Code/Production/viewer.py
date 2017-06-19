@@ -20,7 +20,7 @@ class Camera:
         # Configure computer vision
         self.__edges = False
         self.__corners = False
-        self.__colors = {"on": False,"colors": []}
+        self.__colors = False
 
     def start(self):
         cam = Thread(target=self.__updateFrame, args=())
@@ -40,8 +40,25 @@ class Camera:
         if self.__mono: out_image = self.__make_mono(out_image)
         if self.__edges: out_image = self.__make_edges(out_image)
         if self.__corners: out_image = self.__make_corners(out_image)
-        if self.__colors["on"]: out_image = self.__make_colors(out_image)
+        if self.__colors: out_image = self.__make_colors(out_image)
         return out_image
 
     def release(self):
         return self.__capture.release()
+
+    def tog_mono(self):
+        if self.__mono: self.__mono = False
+        else: self.__mono = True
+
+    def tog_edges(self):
+        if self.__edges: self.__edges = False
+        else: self.__edges = True
+
+    def tog_corners(self):
+        if self.__corners: self.__corners = False
+        else: self.__corners = True
+
+    def tog_colors(self):
+        if self.__colors: self.__colors = False
+        else: self.__colors = True
+
