@@ -7,6 +7,7 @@ from viewer import Camera
 from threading import Event, Thread
 from threading import Thread
 from multiprocessing import Process
+from decimal import Decimal
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -61,12 +62,11 @@ class DCMainApp(object):
         # Argument fields
         self.drone = None              #Drone object
         self.navigator = None      #Navigator object
-        self.camera = camera            #Camera object
+        self.camera = None            #Camera object
         self.root = root
         self.root.title("D.F.C. - Drone Flight Controller")
 
         # Live data
-        self.camera.start()
         self.startupside1 = tk.Frame(self.root)    #Mainwindow left
         self.startupside1.grid(row=0, column=0, columnspan=3, rowspan=30)
         self.startupside1.config(width=self.sensor_width,
@@ -86,7 +86,7 @@ class DCMainApp(object):
         self.cam_event = Event()
         self.cam_thread = Thread(target=self.cam_loop, args=())
         self.cam_thread.daemon = True
-        self.cam_thread.start()
+        #self.cam_thread.start()
 
         # TODO ADDED IN MERGE, TO BE CLEANED
         self.landing = False
@@ -213,16 +213,16 @@ class DCMainApp(object):
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
         altDisplay = "Altitude: {}".format(
-                self.navigator.get_nav()["alt"])
+                Decimal(self.navigator.get_nav()["alt"]).quantize(Decimal('0.001')))
         self.sensor_objs[altdis].config(text=altDisplay)
         self.root.after(self.stat_refresh, self.altstat)
 
     def velstat(self):
         veldis = self.sensor_objs_names.index("veldis")
     	velDisplay = "Velocity: {}".format(
-                np.hypot(
+                Decimal(np.hypot(
                     self.navigator.get_nav()["vel"][0],
-                    self.navigator.get_nav()["vel"][1]))
+                    self.navigator.get_nav()["vel"][1])).quantize(Decimal('0.001')))
     	self.sensor_objs[veldis].config(text=velDisplay)
     	self.root.after(self.stat_refresh, self.velstat)
 
