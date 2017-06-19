@@ -8,7 +8,6 @@ class Camera:
         self.__drone.frontCam()
         self.__drone.midVideo()
         self.__drone.sdVideo()
-        #self.__drone.startVideo()
 
         # Configure camera settings
         self.__currentFrame = None
