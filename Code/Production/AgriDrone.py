@@ -103,6 +103,14 @@ class DCMainApp(object):
         self.landing = False
         self.threshold = 2.0
 
+        # Test button #
+        self.test_button = tk.Button(
+                self.root,
+                text="Test",
+                highlightbackground=self.control_color_back,
+                command=self.d_test)
+        self.test_button.config(width=self.button_width,font=self.button_text)
+        self.test_button.grid(row=10, column=6)
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
@@ -417,6 +425,9 @@ class DCMainApp(object):
         self.camera = Camera(self.drone)
         self.camera.start()
         self.senActivate()
+
+    def d_test(self):
+        return 0
 
 def main():
     # Initialize GUI
