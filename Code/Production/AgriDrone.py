@@ -86,7 +86,7 @@ class DCMainApp(object):
         self.cameraside.grid(row=0, column=34, columnspan=30, rowspan=30)
         self.cameraside.config(width=self.camera_width,
                 height=self.win_height, background=self.sensor_color_back)
-        cam_img = cv2.imread("black.png", 0)
+        cam_img = np.zeros((640, 400, 3), np.uint8)
         cam_img = Image.fromarray(cam_img)
         cam_img = ImageTk.PhotoImage(cam_img)
         self.panel_cam = tk.Label(
