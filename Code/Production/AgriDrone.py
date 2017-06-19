@@ -253,21 +253,11 @@ class DCMainApp(object):
         CURRLONG = self.navigator.get_nav()["gps"][1]
         CURRLAT  = self.navigator.get_nav()["gps"][0]
 
-        #    curr_px = ((CURRLONG - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
-        #    curr_py = ((CURRLAT - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
-
-        #    self.err_dro = self.maparea.create_image(curr_px,curr_py,image=self.map_b_err)
-        #    self.root.after(1000, self.act_drone_loc)
-
-        #calculate pixel placement from static map gps range
-        #else:
         curr_px = ((CURRLONG - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
         curr_py = ((CURRLAT - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
 
-        #if(curr_px != CURRLONG || curr_py != CURRLAT):
-        #draw drone image on map
-        self.dr_img = self.maparea.create_image(curr_px,curr_py,image=self.map_drone)
         #redraw
+        self.dr_img = self.maparea.create_image(curr_px,curr_py,image=self.map_drone)
         self.root.after(1000, self.act_drone_loc)
 
     def take_off(self):
