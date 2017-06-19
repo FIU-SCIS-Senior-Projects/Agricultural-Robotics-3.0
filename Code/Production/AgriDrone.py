@@ -43,6 +43,11 @@ class DCMainApp(object):
         self.win_height = WIN_HEIGHT
         self.win_width  = WIN_WIDTH
         self.button_width = 9
+        self.win_height = 740
+        self.win_width  = 830
+        self.map_width  = 640
+        self.map_height = 400
+        self.button_width = 10
         self.button_text_color = "blue"
         self.button_text_face = "Arial"
         self.button_text_size = 15
@@ -53,6 +58,20 @@ class DCMainApp(object):
         self.camera_width_per = 0.33
         self.control_width_per = 1.0 - self.sensor_width_per - self.camera_width_per
         self.stat_refresh = 200 # ms
+
+        self.map_image   = Image.open("staticmap_road.png")# updated variables
+        self.drone_image = Image.open("droneimg_2_0.gif")
+        self.bound_err   = Image.open("o_o_ran.gif")
+        # Static map image display resolution is 640 x 400 with zoom level 19.
+        # Future maps may be stored as a database of 640 x 400, zoom 19, map tiles
+        # which the drone user may select.
+        # Internal storage of map tiles will discard need for an active internet connection.
+        self.LAT     = 25.759027         #Center latitude of staticmap image
+        self.LONG    = -80.374598        #Center longitude of staticmap image
+        self.MINLAT  = 25.758544         #Lower bound staticmap image latitude
+        self.MINLONG = -80.375419        #Lower bound staticmap image longitude
+        self.MAXLAT  = 25.759510         #Upper bound staticmap image latitude
+        self.MAXLONG = -80.373815        #Upper bound staticmap image longitude
 
         # Derivative Constants
         self.sensor_width = self.sensor_width_per * self.win_width
@@ -71,13 +90,15 @@ class DCMainApp(object):
 
         # Live data
         self.startupside1 = tk.Frame(self.root)    #Mainwindow left
-        self.startupside1.grid(row=0, column=0, columnspan=3, rowspan=30)
+        #self.startupside1.grid(row=0, column=0, columnspan=3, rowspan=30)
+        self.startupside1.grid(row=0,column=1, sticky="nsew")
         self.startupside1.config(width=self.sensor_width,
                 height=self.win_height, background=self.sensor_color_back)
 
         # Controller
-        self.controllerside = tk.Frame(self.root)  #Mainwindow center
-        self.controllerside.grid(row=0, column=3, columnspan=30, rowspan=30)
+        self.controllerside = tk.Frame(self.root)  #Mainwindow right
+        #self.controllerside.grid(row=0, column=3, columnspan=30, rowspan=30)
+        self.controllerside.grid(row=0, column=2, sticky="nsew")
         self.controllerside.config(width=self.control_width,
                 height=self.win_height, background=self.control_color_back)
         self.controller_manual = Event()
@@ -100,6 +121,12 @@ class DCMainApp(object):
                 columnspan=30, rowspan=30,
                 sticky=tk.W+tk.N)
 
+        # Static GeoMap Container
+        self.controllerside2 = tk.Frame(self.root)
+        self.controllerside2.grid(row=2, column=2, stick="nsew")
+        self.controllerside2.config(width=self.control_width,
+                height=self.win_height, background=self.control_color_back)
+
         # TODO ADDED IN MERGE, TO BE CLEANED
         self.landing = False
         self.threshold = 2.0
@@ -120,7 +147,7 @@ class DCMainApp(object):
 
         for i in range(len(self.sensor_objs_names)):
             self.sensor_objs.append(tk.Label(
-                    self.root,
+                    self.startupside1,
                     text=self.sensor_label_text[i],
                     fg=self.button_text_color,bg=self.sensor_color_back))
             self.sensor_objs[i].config(font=self.button_text)
@@ -137,7 +164,7 @@ class DCMainApp(object):
 
         for i in range(len(self.state_objs_names)):
             self.state_objs.append(tk.Button(
-                    self.root,
+                    self.controllerside,
                     text=self.state_label_text[i],
                     highlightbackground=self.control_color_back,
                     command=self.state_commands[i]
@@ -153,14 +180,14 @@ class DCMainApp(object):
         self.xz_commands = [self.d_moveup, self.d_forward, self.d_hover, self.d_backward, self.d_movedown]
         self.xz_rows = [4, 5, 6, 7, 8]
 
-        self.dr_Control = tk.Label(self.root, text="Flight\nController",
+        self.dr_Control = tk.Label(self.controllerside, text="Flight\nController",
                 bg=self.control_color_back)
         self.dr_Control.config(font=('Arial',24,'bold'), fg='black')
         self.dr_Control.grid(row=1, column=10)
 
         for i in range(len(self.xz_objs_names)):
             self.xz_objs.append(tk.Button(
-                    self.root,
+                    self.controllerside,
                     text=self.xz_label_text[i],
                     highlightbackground=self.control_color_back,
                     command=self.xz_commands[i]
@@ -178,7 +205,7 @@ class DCMainApp(object):
 
         for i in range(len(self.y_objs_names)):
             self.y_objs.append(tk.Button(
-                    self.root,
+                    self.controllerside,
                     text=self.y_label_text[i],
                     highlightbackground=self.control_color_back,
                     command=self.y_commands[i]
@@ -186,6 +213,23 @@ class DCMainApp(object):
             self.y_objs[i].config(width=self.button_width,font=self.button_text)
             self.y_objs[i].grid(row=6,column=self.y_cols[i])
 
+    ####################################Drone map area##################################################
+
+        self.maparea = tk.Canvas(self.controllerside2, bg='black',
+            width=self.map_width, height=self.map_height)
+        self.maparea.grid(row=0, column=0)
+
+        self.droneimg = tk.Label(self.controllerside2)
+        self.droneimg.grid(row=0,column=2)
+
+        self.err_img = tk.Label(self.controllerside2)
+        self.err_img.grid(row=0,column=2)
+
+        self.map_loc = ImageTk.PhotoImage(self.map_image)
+        self.map_drone = ImageTk.PhotoImage(self.drone_image)
+        self.map_b_err = ImageTk.PhotoImage(self.bound_err)
+
+        self.dr_img = self.maparea.create_image(0,0,image=self.map_drone)
 
     ###################################GUI Drone button functions########################################
     def senActivate(self):
@@ -238,10 +282,30 @@ class DCMainApp(object):
     def gpsstat(self):
         gpsdis = self.sensor_objs_names.index("gpsdis")
         gpsDisplay = "Latitude: {}\nLongitude: {}".format(
-                self.drone.NavData["gps"][0],
-                self.drone.NavData["gps"][1])
+                self.navigator.get_nav()["gps"][0],
+                self.navigator.get_nav()["gps"][1])
     	self.sensor_objs[gpsdis].config(text=gpsDisplay)
     	self.root.after(self.stat_refresh, self.gpsstat)
+
+    def render_map(self):
+        cent_mapx = (self.map_width/2) + 3
+        cent_mapy = (self.map_height/2) + 3
+        self.loc = self.maparea.create_image(cent_mapx,cent_mapy,image=self.map_loc)
+
+    def act_drone_loc(self):
+
+        self.maparea.delete(self.dr_img)
+
+        #capture coordinates
+        CURRLONG = self.navigator.get_nav()["gps"][1]
+        CURRLAT  = self.navigator.get_nav()["gps"][0]
+
+        curr_px = ((CURRLONG - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
+        curr_py = ((CURRLAT - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
+
+        #redraw
+        self.dr_img = self.maparea.create_image(curr_px,curr_py,image=self.map_drone)
+        self.root.after(1000, self.act_drone_loc)
 
     def take_off(self):
         self.drone.takeoff()
@@ -439,6 +503,8 @@ class DCMainApp(object):
         self.camera = Camera(self.drone)
         self.camera.start()
         self.senActivate()
+        self.render_map()
+        self.act_drone_loc()
 
     def d_test(self):
         self.d_smooth()
