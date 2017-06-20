@@ -29,26 +29,40 @@ class Camera:
         self.__edges = False
         self.__corners = False
         self.__colors = False
+        self.__shapes = False
 
-    def start(self):
-        cam = Thread(target=self.__updateFrame, args=())
-        cam.daemon = True
-        cam.start()
+    def __make_edges(self, img):
+        return img
+
+    def __make_corners(self, img):
+        return img
+
+    def __make_colors(self, img):
+        return img
+
+    def __make_shapes(self, img):
+        return img
 
     def __updateFrame(self):
         while(True):
             ret, self.__currentFrame = self.__capture.read()
             while not ret: ret, frame = self.__capture.read()
 
+    def start(self):
+        cam = Thread(target=self.__updateFrame, args=())
+        cam.daemon = True
+        cam.start()
+
+    def release(self):
+        return self.__capture.release()
+
     def getFrame(self):
         out_image = self.__currentFrame
         if self.__edges: out_image = self.__make_edges(out_image)
         if self.__corners: out_image = self.__make_corners(out_image)
         if self.__colors: out_image = self.__make_colors(out_image)
+        if self.__shapes: out_image = self.__make_shapes(out_image)
         return out_image
-
-    def release(self):
-        return self.__capture.release()
 
     def tog_edges(self):
         if self.__edges: self.__edges = False
@@ -61,4 +75,8 @@ class Camera:
     def tog_colors(self):
         if self.__colors: self.__colors = False
         else: self.__colors = True
+
+    def tog_shapes(self):
+        if self.__shapes: self.__shapes = False
+        else: self.__shapes = True
 
