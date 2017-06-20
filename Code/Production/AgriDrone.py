@@ -141,13 +141,13 @@ class DCMainApp(object):
         self.test_button.grid(row=10, column=6)
 
         # Color button #
-        self.mono_button = tk.Button(
-                self.root,
-                text="Mono",
-                highlightbackground=self.control_color_back,
-                command=self.d_mono)
-        self.mono_button.config(width=self.button_width,font=self.button_text)
-        self.mono_button.grid(row=11, column=6)
+        #self.mono_button = tk.Button(
+        #        self.root,
+        #        text="Mono",
+        #        highlightbackground=self.control_color_back,
+        #        command=self.d_mono)
+        #self.mono_button.config(width=self.button_width,font=self.button_text)
+        #self.mono_button.grid(row=11, column=6)
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
@@ -517,9 +517,6 @@ class DCMainApp(object):
 
     def d_test(self):
         self.d_smooth()
-
-    def d_mono(self):
-        self.camera.tog_mono()
 
 def main():
     # Initialize GUI
