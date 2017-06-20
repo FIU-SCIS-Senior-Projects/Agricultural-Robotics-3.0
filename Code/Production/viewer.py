@@ -19,7 +19,6 @@ class Camera:
         self.__drone.sdVideo()
 
         # Configure camera settings
-        self.__currentFrame = None
         self.__capture = cv2.VideoCapture(
                 "{}://{}:{}".format(self.__PROTOCOL, self.__VID_IP, self.__VID_PORT))
         self.__capture.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, self.__CAMERA_WIDTH)
@@ -30,9 +29,25 @@ class Camera:
         self.__corners = False
         self.__colors = False
         self.__shapes = False
+        self.__processing = [
+                self.__edges,
+                self.__corners,
+                self.__colors,
+                self.__shapes,
+                ]
+
+        # Stored Frames
+        self.__currentFrame = None
+        self.__currentGrayFrame = None
 
     def __make_edges(self, img):
-        return img
+
+        
+
+
+
+        out_img = img
+        return out_img
 
     def __make_corners(self, img):
         return img
@@ -58,6 +73,8 @@ class Camera:
 
     def getFrame(self):
         out_image = self.__currentFrame
+        if any(self.__processing):
+            self.__currentGrayFrame = cv2.cvtColor(out_image, cv2.COLOR_BGR2GRAY)
         if self.__edges: out_image = self.__make_edges(out_image)
         if self.__corners: out_image = self.__make_corners(out_image)
         if self.__colors: out_image = self.__make_colors(out_image)
