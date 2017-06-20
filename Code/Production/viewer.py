@@ -21,11 +21,11 @@ class Camera:
         # Configure camera settings
         self.__capture = cv2.VideoCapture(
                 "{}://{}:{}".format(self.__PROTOCOL, self.__VID_IP, self.__VID_PORT))
-        self.__capture.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, self.__CAMERA_WIDTH)
-        self.__capture.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, self.__CAMERA_HEIGHT)
+        self.__capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.__CAMERA_WIDTH)
+        self.__capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.__CAMERA_HEIGHT)
 
         # Configure computer vision
-        self.__edges = False
+        self.__edges = True
         self.__corners = False
         self.__colors = False
         self.__shapes = False
@@ -35,18 +35,18 @@ class Camera:
                 self.__colors,
                 self.__shapes,
                 ]
+        self.__CANNY_MIN = 100
+        self.__CANNY_MAX = 200
 
         # Stored Frames
         self.__currentFrame = None
         self.__currentGrayFrame = None
 
     def __make_edges(self, img):
+        gray = self.__currentGrayFrame
+        edges = cv2.Canny(gray, self.__CANNY_MIN, self.__CANNY_MAX)
 
-        
-
-
-
-        out_img = img
+        out_img = img + edges
         return out_img
 
     def __make_corners(self, img):
@@ -60,8 +60,11 @@ class Camera:
 
     def __updateFrame(self):
         while(True):
-            ret, self.__currentFrame = self.__capture.read()
+            ret, frame = self.__capture.read()
             while not ret: ret, frame = self.__capture.read()
+            try: frame[:,:]  # some erroneous frame detection
+            except: continue # in case a bad image gets through
+            self.__currentFrame = frame
 
     def start(self):
         cam = Thread(target=self.__updateFrame, args=())
