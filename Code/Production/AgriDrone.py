@@ -47,6 +47,8 @@ class DCMainApp(object):
         self.win_width  = 830
         self.map_width  = 640
         self.map_height = 400
+        self.cam_width  = 640
+        self.cam_height = 360
         self.button_width = 10
         self.button_text_color = "blue"
         self.button_text_face = "Arial"
@@ -108,12 +110,12 @@ class DCMainApp(object):
         self.cameraside.grid(row=0, column=34, columnspan=30, rowspan=30)
         self.cameraside.config(width=self.camera_width,
                 height=self.win_height, background=self.sensor_color_back)
-        cam_img = np.zeros((640, 400, 3), np.uint8)
+        cam_img = np.zeros((self.cam_width, self.cam_height, 3), np.uint8)
         cam_img = Image.fromarray(cam_img)
         cam_img = ImageTk.PhotoImage(cam_img)
         self.panel_cam = tk.Label(
-                width=640,
-                height=400,
+                width=self.cam_width,
+                height=self.cam_height,
                 image = cam_img)
         self.panel_cam.cam_img = cam_img
         self.panel_cam.grid(
@@ -262,7 +264,6 @@ class DCMainApp(object):
 
     def camstat(self):
         cam_img = self.camera.getFrame()
-        cam_img = cv2.resize(cam_img, (640, 360))
         cam_img = Image.fromarray(cam_img)
         cam_img = ImageTk.PhotoImage(cam_img)
         self.panel_cam.config(image = cam_img)
@@ -291,8 +292,12 @@ class DCMainApp(object):
     def gpsstat(self):
         gpsdis = self.sensor_objs_names.index("gpsdis")
         gpsDisplay = "Latitude: {}\nLongitude: {}".format(
-                self.navigator.get_nav()["gps"][0],
-                self.navigator.get_nav()["gps"][1])
+                Decimal(
+                    self.navigator.get_nav()["gps"][0]
+                    ).quantize(Decimal('0.000001')),
+                Decimal(
+                    self.navigator.get_nav()["gps"][1],
+                    ).quantize(Decimal('0.000001')))
     	self.sensor_objs[gpsdis].config(text=gpsDisplay)
     	self.root.after(self.stat_refresh, self.gpsstat)
 
@@ -509,7 +514,7 @@ class DCMainApp(object):
         self.drone.reset()
         self.navigator = Navigator(self.drone)
         self.navigator.mod_waypoints(gps_targets, reset=True)
-        self.camera = Camera(self.drone)
+        self.camera = Camera(self.drone, self.cam_width, self.cam_height)
         self.camera.start()
         self.senActivate()
         self.render_map()
