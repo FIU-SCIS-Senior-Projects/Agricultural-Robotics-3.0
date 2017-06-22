@@ -14,8 +14,8 @@ class Camera:
         self.__CAMERA_WIDTH = 640
         self.__CAMERA_HEIGHT = 360
         self.__capture = cv2.VideoCapture('tcp://192.168.1.1:5555')
-        self.__capture.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH,self.__CAMERA_WIDTH)
-        self.__capture.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT,self.__CAMERA_HEIGHT)
+        self.__capture.set(cv2.CAP_PROP_FRAME_WIDTH,self.__CAMERA_WIDTH)
+        self.__capture.set(cv2.CAP_PROP_FRAME_HEIGHT,self.__CAMERA_HEIGHT)
 
     def start(self):
         cam = Thread(target=self.__updateFrame, args=())

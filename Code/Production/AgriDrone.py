@@ -61,6 +61,7 @@ class DCMainApp(object):
 
         self.map_image   = Image.open("staticmap_road.png")# updated variables
         self.drone_image = Image.open("droneimg_2_0.gif")
+        self.drone_loc   = Image.open("drone_mrkr.gif")
         self.bound_err   = Image.open("o_o_ran.gif")
         # Static map image display resolution is 640 x 400 with zoom level 19.
         # Future maps may be stored as a database of 640 x 400, zoom 19, map tiles
@@ -72,6 +73,15 @@ class DCMainApp(object):
         self.MINLONG = -80.375419        #Lower bound staticmap image longitude
         self.MAXLAT  = 25.759510         #Upper bound staticmap image latitude
         self.MAXLONG = -80.373815        #Upper bound staticmap image longitude
+
+        # Pixel width calculation dx and dy
+        self.pix_dx = abs(-80.374598 - -80.375381)/ abs(320 - 0)
+        self.pix_dy = abs(25.759027 - 25.759510)/abs(200 - 0)
+
+        # Pixel map click function
+        self.clk_arr = []
+        self.clk_pix_x = ''
+        self.clk_pix_y = ''
 
         # Derivative Constants
         self.sensor_width = self.sensor_width_per * self.win_width
@@ -217,16 +227,21 @@ class DCMainApp(object):
 
         self.maparea = tk.Canvas(self.controllerside2, bg='black',
             width=self.map_width, height=self.map_height)
+        self.maparea.bind("<Button-1>",self.capt_clicks)
         self.maparea.grid(row=0, column=0)
 
         self.droneimg = tk.Label(self.controllerside2)
         self.droneimg.grid(row=0,column=2)
+
+        self.drone_mrkr = tk.Label(self.controllerside2)
+        self.drone_mrkr.grid(row=0,column=2)
 
         self.err_img = tk.Label(self.controllerside2)
         self.err_img.grid(row=0,column=2)
 
         self.map_loc = ImageTk.PhotoImage(self.map_image)
         self.map_drone = ImageTk.PhotoImage(self.drone_image)
+        self.map_drone_mrkr = ImageTk.PhotoImage(self.drone_loc)
         self.map_b_err = ImageTk.PhotoImage(self.bound_err)
 
         self.dr_img = self.maparea.create_image(0,0,image=self.map_drone)
@@ -293,7 +308,6 @@ class DCMainApp(object):
         self.loc = self.maparea.create_image(cent_mapx,cent_mapy,image=self.map_loc)
 
     def act_drone_loc(self):
-
         self.maparea.delete(self.dr_img)
 
         #capture coordinates
@@ -306,6 +320,20 @@ class DCMainApp(object):
         #redraw
         self.dr_img = self.maparea.create_image(curr_px,curr_py,image=self.map_drone)
         self.root.after(1000, self.act_drone_loc)
+
+    def rend_mrkrs(self):
+        self.maparea.create_image(self.clk_pix_x,
+                                  self.clk_pix_y,
+                                  image=self.map_drone_mrkr) # Draw marker
+
+    def capt_clicks(self,event):
+        self.clk_pix_x = event.x                # Recent event variables
+        self.clk_pix_y = event.y
+
+        self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
+        for point in range(len(self.clk_arr)): print self.clk_arr[point]
+
+        self.rend_mrkrs()                       # Render markers function
 
     def take_off(self):
         self.drone.takeoff()
