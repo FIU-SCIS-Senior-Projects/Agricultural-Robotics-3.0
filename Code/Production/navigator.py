@@ -83,9 +83,12 @@ class Navigator:
 
         # Average the remainder of the lists
         for i in range(len(stat_lists)):
-            self.__stats[stat_names[i]] = reduce(
-                    lambda x, y: x + y, np.array(stat_lists[i])
-                    ) / len(stat_lists[i])
+            try:
+                self.__stats[stat_names[i]] = reduce(
+                        lambda x, y: x + y, np.array(stat_lists[i])
+                        ) / len(stat_lists[i])
+            except TypeError:
+                self.__stats[stat_names[i]] = float('nan')
 
     def __is_outlier(self, points, thresh=3.5):
         """
