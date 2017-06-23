@@ -85,6 +85,9 @@ class DCMainApp(object):
         self.clk_pix_x = ''
         self.clk_pix_y = ''
 
+        # Map marker List
+        self.pix_gps_coor = []
+
         # Derivative Constants
         self.sensor_width = self.sensor_width_per * self.win_width
         self.control_width = self.control_width_per * self.win_width
@@ -331,10 +334,10 @@ class DCMainApp(object):
         curr_px = ((CURRLONG - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
         curr_py = ((CURRLAT - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
 
-        #redraw
         self.dr_img = self.maparea.create_image(curr_px,curr_py,image=self.map_drone)
+        #redraw
         self.root.after(1000, self.act_drone_loc)
-
+        
     def rend_mrkrs(self):
         self.maparea.create_image(self.clk_pix_x,
                                   self.clk_pix_y,
@@ -344,10 +347,16 @@ class DCMainApp(object):
         self.clk_pix_x = event.x                # Recent event variables
         self.clk_pix_y = event.y
 
-        self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
-        for point in range(len(self.clk_arr)): print self.clk_arr[point]
+        self.pix_gps_lon = (self.clk_pix_x * self.pix_dx) + self.MINLONG    # Converted pixels to gps
+        self.pix_gps_lat = (self.clk_pix_y * self.pix_dy) + self.MINLAT
 
-        self.rend_mrkrs()                       # Render markers function
+        self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
+        self.pix_gps_coor.append([self.pix_gps_lat,self.pix_gps_lon]) #List of GPS locations
+        for point in range(len(self.clk_arr)):
+            print self.clk_arr[point]
+            print self.pix_gps_coor[point]
+
+        self.rend_mrkrs()
 
     def take_off(self):
         self.drone.takeoff()
