@@ -5,6 +5,7 @@ from threading import Thread
 class Camera:
     def __init__(self, drone, width, height):
         # Constant camera vals
+        print ">>> AR Drone 2.0 Camera Viewer"
         self.__CAM_WIDTH = width
         self.__CAM_HEIGHT = height
         self.__PROTOCOL = "tcp"
@@ -14,21 +15,24 @@ class Camera:
         
 
         # Configure drone video
+        print ">>> Initializing video capture..."
         self.__drone = drone
         self.__drone.frontCam()
         self.__drone.midVideo()
         self.__drone.sdVideo()
 
         # Configure camera settings
+        print ">>> Initializing capture settings..."
         self.__capture = cv2.VideoCapture(
                 "{}://{}:{}".format(self.__PROTOCOL, self.__VID_IP, self.__VID_PORT))
         self.__capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.__CAM_WIDTH)
         self.__capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.__CAM_HEIGHT)
 
         # Configure computer vision
+        print ">>> Configuring computer vision options..."
         self.__edges = False
         self.__corners = False
-        self.__colors = True
+        self.__colors = False
         self.__shapes = False
         self.__processing = [
                 self.__edges,
@@ -49,6 +53,9 @@ class Camera:
         # Stored Frames
         self.__currentFrame = None
         self.__currentGrayFrame = None
+
+        # Done initializing
+        print ">>> CAMERA READY"
 
     def __get_hsv(self):
         for color in self.__color_def:
@@ -83,6 +90,26 @@ class Camera:
         return img
 
     def __make_shapes(self, img):
+        # obtain thresholded b&w image
+        blurred = cv2.GaussianBlur(self.__currentGrayFrame, (5, 5), 0)
+        thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
+        cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
+        
+        # identify centroids
+        for c in cnts:
+            M = cv2.moments(c)
+            # avoid divide by zeros by skipping that loop
+            try:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+            except ZeroDivisionError: continue
+        
+            # draw contours
+            cv2.drawContours(img, [c], -1, (0, 255, 0), 2)
+            cv2.circle(img, (cX, cY), 7, (255, 255, 255), -1)
+            cv2.putText(img, "center", (cX - 20, cY - 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
         return img
 
     def __updateFrame(self):
@@ -103,8 +130,8 @@ class Camera:
 
     def getFrame(self):
         out_image = self.__currentFrame
-#        if any(self.__processing):
-#            self.__currentGrayFrame = cv2.cvtColor(out_image, cv2.COLOR_BGR2GRAY)
+        if any(self.__processing):
+            self.__currentGrayFrame = cv2.cvtColor(out_image, cv2.COLOR_BGR2GRAY)
         if self.__edges: out_image = self.__make_edges(out_image)
         if self.__corners: out_image = self.__make_corners(out_image)
         if self.__colors: out_image = self.__make_colors(out_image)
