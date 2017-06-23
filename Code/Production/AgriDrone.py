@@ -5,7 +5,6 @@ from ps_drone import Drone
 from navigator import Navigator
 from viewer import Camera
 from threading import Event, Thread
-from threading import Thread
 from multiprocessing import Process
 from decimal import Decimal
 import numpy as np
@@ -135,6 +134,7 @@ class DCMainApp(object):
                 row=0, column=34,
                 columnspan=30, rowspan=30,
                 sticky=tk.W+tk.N)
+        self.camera_event = Event()
 
         # Static GeoMap Container
         self.controllerside2 = tk.Frame(self.root)
@@ -409,7 +409,9 @@ class DCMainApp(object):
 
     def quit(self):
         self.controller_manual.set()
+        self.camera_event.set()
         if self.drone != None: self.drone.shutdown     # Land drone and discard drone object
+        if self.camera != None: self.camera.cam_thread.join()
         if self.camera != None: self.camera.release()   # Shutdown camera
         self.root.destroy()     # Discard Main window object
         print "Exiting GUI"
@@ -551,7 +553,11 @@ class DCMainApp(object):
         self.drone.reset()
         self.navigator = Navigator(self.drone)
         self.navigator.mod_waypoints(gps_targets, reset=True)
-        self.camera = Camera(self.drone, self.cam_width, self.cam_height)
+        self.camera = Camera(
+                self.drone,
+                self.cam_width,
+                self.cam_height,
+                self.camera_event)
         self.camera.start()
         self.senActivate()
         self.render_map()
