@@ -50,7 +50,6 @@ class Camera:
         self.__currentFrame = None
         self.__currentGrayFrame = None
 
-
     def __get_hsv(self):
         for color in self.__color_def:
             hsv = cv2.cvtColor(color, cv2.COLOR_BGR2HSV)
