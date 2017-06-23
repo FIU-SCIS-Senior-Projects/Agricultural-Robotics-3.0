@@ -49,7 +49,7 @@ class Navigator:
         self.__home = self.__stats["gps"]
 
         # Done initializing
-        print ">>> READY"
+        print ">>> NAVIGATOR READY"
 
     def __sensors_collect(self):
         """Continuously collects sensor data"""
@@ -108,8 +108,9 @@ class Navigator:
         stats = {}
         # Get fresh NavData
         NDC = self.__drone.NavDataCount
-        while self.__drone.NavDataCount == NDC: time.sleep(0.01)
-    
+        while self.__drone.NavDataCount == NDC or
+        not all(package in self.__drone.NavData for package in self.__REQ_PACKS): time.sleep(0.01)
+
         # Straightforward data
         stats["acc"] = self.__drone.NavData["raw_measures"][0]
         stats["gyr"] = self.__drone.NavData["raw_measures"][1]
