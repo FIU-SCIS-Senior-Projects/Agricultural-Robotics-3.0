@@ -146,6 +146,15 @@ class DCMainApp(object):
         self.landing = False
         self.threshold = 2.0
 
+        # Blue button #
+        self.blue_button = tk.Button(
+                self.controllerside,
+                text="Blue",
+                highlightbackground=self.control_color_back,
+                command=self.d_blue)
+        self.blue_button.config(width=self.button_width,font=self.button_text)
+        self.blue_button.grid(row=0, column=1)
+
         # Test button #
         self.test_button = tk.Button(
                 self.controllerside,
@@ -646,6 +655,9 @@ class DCMainApp(object):
         self.rad_roi.config(bg= self.control_color_back, state=NORMAL)
 
 
+
+    def d_blue(self):
+        self.camera.tog_colors()
 
     def d_test(self):
         self.d_smooth()
