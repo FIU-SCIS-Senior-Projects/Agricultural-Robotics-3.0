@@ -170,7 +170,7 @@ class DCMainApp(object):
         self.state_objs = []
         self.state_objs_names = ["connect", "takeoff", "land", "shutdown", "quit", "clear", "launch rte."]
         self.state_label_text = ["Connect", "Launch", "Land", "Shutdown", "Quit GUI", "Clear Sel.", "Start Route"]
-        self.state_commands = [self.d_connect, self.take_off, self.d_land, self.shutdown, self.quit, self.clear_slctns, self.lnch_rte]
+        self.state_commands = [self.d_connect, self.take_off, self.d_land, self.shutdown, self.quit, self.clear_slctns, self.lnch_route]
         self.state_rows = [0, 6, 6, 1, 12, 12,11]
         self.state_cols = [0, 0, 2, 0, 0, 2, 2]
 
@@ -418,7 +418,7 @@ class DCMainApp(object):
         elif(self.rte_selctn_var.get() == 2):
             self.maparea.bind("<Button-1>",self.roi_rect_rte)
 
-    def lnch_rte(self):
+    def lnch_route(self):
         print ">>>Drone Beginning Route"
 
     def clear_slctns(self):
