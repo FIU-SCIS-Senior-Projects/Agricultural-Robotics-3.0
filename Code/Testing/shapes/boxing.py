@@ -9,24 +9,29 @@ def get_hsv(colors, ranges):
             np.array([hue_low, 75, 75]),
             np.array([hue_high, 255, 255])))
 
-def make_colors(img, ranges):
-    mask_acc = np.zeros((img.shape[0], img.shape[1]), np.uint8)
+def make_colors(img, color_mask, ranges):
+    mask_acc = color_mask.copy()
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     for hsv_range in ranges:
         mask_cur = cv2.inRange(img_hsv, hsv_range[0], hsv_range[1])
         mask_acc = cv2.add(mask_acc, mask_cur)
-    out_img = cv2.bitwise_and(img, img, mask = mask_acc)
-    return out_img
+    #out_img = cv2.bitwise_and(img, img, mask = mask_acc)
+    return mask_acc
 
-def make_shapes(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+
+
+
+def make_shapes(img, mask):
+    #gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    #blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    blurred = cv2.GaussianBlur(mask, (5, 5), 0)
     thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
     for c in cnts:
-        #make_bounding_box(img, c)
+        #make_bounding_box(mask, c)
 
-        #epsilon = 0.1 * cv2.arcLength(c, True)
+        #epsilon = 0.5 * cv2.arcLength(c, True)
         #approx = cv2.approxPolyDP(c, epsilon, True)
         #cv2.drawContours(img, approx, -1, (255, 255, 255), 2)
 
@@ -36,6 +41,12 @@ def make_shapes(img):
             px, py = list(hull[i][0]), list(hull[(i + 1) % tar_range][0])
             cv2.line(img, (px[0], px[1]), (py[0], py[1]), (255, 255, 255), 2)
     return img
+
+
+
+
+
+
 
 def make_bounding_box(img, cnts):
     for cnt in cnts:
@@ -59,10 +70,12 @@ color_def = [    # BGR vals
 color_ranges = []
 get_hsv(color_def, color_ranges)
 
-out_img = make_colors(img, color_ranges)
+mask = np.zeros((img.shape[0], img.shape[1]), np.uint8)
+mask = make_colors(img, mask, color_ranges)
 
-out_img = make_shapes(out_img)
+out_img = make_shapes(img, mask)
 
+#cv2.imshow("test", mask)
 cv2.imshow("test", out_img)
 cv2.waitKey(0)
 
