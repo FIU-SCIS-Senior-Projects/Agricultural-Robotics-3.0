@@ -49,7 +49,7 @@ class Navigator:
         self.__home = self.__stats["gps"]
 
         # Done initializing
-        print ">>> READY"
+        print ">>> NAVIGATOR READY"
 
     def __sensors_collect(self):
         """Continuously collects sensor data"""
@@ -83,9 +83,12 @@ class Navigator:
 
         # Average the remainder of the lists
         for i in range(len(stat_lists)):
-            self.__stats[stat_names[i]] = reduce(
-                    lambda x, y: x + y, np.array(stat_lists[i])
-                    ) / len(stat_lists[i])
+            try:
+                self.__stats[stat_names[i]] = reduce(
+                        lambda x, y: x + y, np.array(stat_lists[i])
+                        ) / len(stat_lists[i])
+            except TypeError:
+                self.__stats[stat_names[i]] = float('nan')
 
     def __is_outlier(self, points, thresh=3.5):
         """
@@ -108,8 +111,10 @@ class Navigator:
         stats = {}
         # Get fresh NavData
         NDC = self.__drone.NavDataCount
-        while self.__drone.NavDataCount == NDC: time.sleep(0.01)
-    
+        while self.__drone.NavDataCount == NDC or not all(
+                package in self.__drone.NavData for package in self.__REQ_PACKS):
+            time.sleep(0.01)
+
         # Straightforward data
         stats["acc"] = self.__drone.NavData["raw_measures"][0]
         stats["gyr"] = self.__drone.NavData["raw_measures"][1]
