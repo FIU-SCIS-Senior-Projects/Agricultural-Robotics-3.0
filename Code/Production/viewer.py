@@ -31,7 +31,7 @@ class Camera:
 
         # Configure computer vision
         print ">>> Configuring computer vision options..."
-        self.__colors = True
+        self.__colors = False
         self.__color_def = [    # BGR vals
                 np.uint8([[[255,   0,   0]]]),  # blue
                 #np.uint8([[[  0, 255,   0]]]),  # green
@@ -71,18 +71,6 @@ class Camera:
                 px, py = list(hull[i][0]), list(hull[(i + 1) % tar_range][0])
                 cv2.line(img, (px[0], px[1]), (py[0], py[1]), (255, 255, 255), 2)
         return img
-
-    def __make_bounding_box(self, img, cnts):
-        for cnt in cnts:
-            rect_rot = cv2.minAreaRect(cnt)
-            rect_pts = cv2.boxPoints(rect_rot)
-            for i in range(4):
-                p1 = [int(x) for x in rect_pts[i]]
-                p2 = [int(x) for x in rect_pts[(i + 1) % 4]]
-                cv2.line(img,
-                        (p1[0], p1[1]),
-                        (p2[0], p2[1]),
-                        (255, 255, 255), 2)
 
     def __updateFrame(self):
         while(not self.__CAM_EVENT.is_set()):
