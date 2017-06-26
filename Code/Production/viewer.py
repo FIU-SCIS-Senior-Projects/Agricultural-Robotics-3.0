@@ -31,12 +31,7 @@ class Camera:
 
         # Configure computer vision
         print ">>> Configuring computer vision options..."
-        self.__colors = False
-        self.__shapes = False
-        self.__processing = [
-                self.__colors,
-                self.__shapes,
-                ]
+        self.__colors = True
         self.__color_def = [    # BGR vals
                 np.uint8([[[255,   0,   0]]]),  # blue
                 #np.uint8([[[  0, 255,   0]]]),  # green
@@ -66,32 +61,15 @@ class Camera:
         for hsv_range in self.__color_ranges:
             mask_cur = cv2.inRange(img_hsv, hsv_range[0], hsv_range[1])
             mask_acc = cv2.add(mask_acc, mask_cur)
-        out_img = cv2.bitwise_and(img, img, mask = mask_acc)
-        return out_img
-
-    def __make_shapes(self, img):
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        blurred = cv2.GaussianBlur(mask_acc, (5, 5), 0)
         thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
         cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
         for c in cnts:
-            #self.__make_bounding_box(img, c)
-
-            #epsilon = 0.1 * cv2.arcLength(c, True)
-            #approx = cv2.approxPolyDP(c, epsilon, True)
-            #cv2.drawContours(img, approx, -1, (255, 255, 255), 2)
-
             hull = cv2.convexHull(c)
-            print "\"\"\""
-            print hull
-            print "\"\"\""
-            #for i in range(len(hull)):
-            #    p1 = [int(x) for x in hull[i]]
-            #    p2 = [int(x) for x in hull[(i + 1) % 4]]
-            #    cv2.line(img,
-            #            (p1[0], p1[1]),
-            #            (p2[0], p2[1]),
-            #            (255, 255, 255), 2)
+            tar_range = len(hull)
+            for i in range(tar_range):
+                px, py = list(hull[i][0]), list(hull[(i + 1) % tar_range][0])
+                cv2.line(img, (px[0], px[1]), (py[0], py[1]), (255, 255, 255), 2)
         return img
 
     def __make_bounding_box(self, img, cnts):
@@ -116,10 +94,7 @@ class Camera:
 
     def getFrame(self):
         out_image = self.__currentFrame
-        #if any(self.__processing):
-        #    self.__currentGrayFrame = cv2.cvtColor(out_image, cv2.COLOR_BGR2GRAY)
         if self.__colors: out_image = self.__make_colors(out_image)
-        if self.__shapes: out_image = self.__make_shapes(out_image)
         return cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB)
 
     def start(self):
@@ -130,5 +105,4 @@ class Camera:
         return self.__capture.release()
 
     def tog_colors(self): self.__colors = not self.__colors
-    def tog_shapes(self): self.__shapes = not self.__shapes
 
