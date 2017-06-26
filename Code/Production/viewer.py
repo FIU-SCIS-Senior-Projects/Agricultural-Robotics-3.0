@@ -32,15 +32,15 @@ class Camera:
         # Configure computer vision
         print ">>> Configuring computer vision options..."
         self.__colors = False
-        self.__shapes = True
+        self.__shapes = False
         self.__processing = [
                 self.__colors,
                 self.__shapes,
                 ]
         self.__color_def = [    # BGR vals
                 np.uint8([[[255,   0,   0]]]),  # blue
-                np.uint8([[[  0, 255,   0]]]),  # green
-                np.uint8([[[  0,   0, 255]]]),  # red
+                #np.uint8([[[  0, 255,   0]]]),  # green
+                #np.uint8([[[  0,   0, 255]]]),  # red
                 ]
         self.__color_ranges = []
         self.__get_hsv()
@@ -57,42 +57,54 @@ class Camera:
             hsv = cv2.cvtColor(color, cv2.COLOR_BGR2HSV)
             hue_low, hue_high = hsv[0][0][0] - 10, hsv[0][0][0] + 10
             self.__color_ranges.append((
-                np.array([hue_low, 100, 100]),
+                np.array([hue_low, 75, 75]),
                 np.array([hue_high, 255, 255])))
 
     def __make_colors(self, img):
-        #print img.shape # (360,640,3)
         mask_acc = np.zeros((img.shape[0], img.shape[1]), np.uint8)
-        #print mask_acc.shape # (360,640)
         img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         for hsv_range in self.__color_ranges:
             mask_cur = cv2.inRange(img_hsv, hsv_range[0], hsv_range[1])
-            #print mask_cur.shape # (360, 640)
             mask_acc = cv2.add(mask_acc, mask_cur)
-
         out_img = cv2.bitwise_and(img, img, mask = mask_acc)
-        out_img = cv2.cvtColor(out_img, cv2.COLOR_BGR2RGB)
         return out_img
 
     def __make_shapes(self, img):
-        # obtain thresholded b&w image
-        blurred = cv2.GaussianBlur(self.__currentGrayFrame, (5, 5), 0)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
         cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
-        
-        # identify centroids
         for c in cnts:
-            M = cv2.moments(c)
-            cX = int(M["m10"] / (M["m00"] + 1e-7))
-            cY = int(M["m01"] / (M["m00"] + 1e-7))
-        
-            # draw contours
-            cv2.drawContours(img, [c], -1, (0, 255, 0), 2)
-            cv2.circle(img, (cX, cY), 7, (255, 255, 255), -1)
-            cv2.putText(img, "center", (cX - 20, cY - 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            #self.__make_bounding_box(img, c)
 
+            #epsilon = 0.1 * cv2.arcLength(c, True)
+            #approx = cv2.approxPolyDP(c, epsilon, True)
+            #cv2.drawContours(img, approx, -1, (255, 255, 255), 2)
+
+            hull = cv2.convexHull(c)
+            print "\"\"\""
+            print hull
+            print "\"\"\""
+            #for i in range(len(hull)):
+            #    p1 = [int(x) for x in hull[i]]
+            #    p2 = [int(x) for x in hull[(i + 1) % 4]]
+            #    cv2.line(img,
+            #            (p1[0], p1[1]),
+            #            (p2[0], p2[1]),
+            #            (255, 255, 255), 2)
         return img
+
+    def __make_bounding_box(self, img, cnts):
+        for cnt in cnts:
+            rect_rot = cv2.minAreaRect(cnt)
+            rect_pts = cv2.boxPoints(rect_rot)
+            for i in range(4):
+                p1 = [int(x) for x in rect_pts[i]]
+                p2 = [int(x) for x in rect_pts[(i + 1) % 4]]
+                cv2.line(img,
+                        (p1[0], p1[1]),
+                        (p2[0], p2[1]),
+                        (255, 255, 255), 2)
 
     def __updateFrame(self):
         while(not self.__CAM_EVENT.is_set()):
@@ -102,6 +114,14 @@ class Camera:
             except: continue # in case a bad image gets through
             self.__currentFrame = frame
 
+    def getFrame(self):
+        out_image = self.__currentFrame
+        #if any(self.__processing):
+        #    self.__currentGrayFrame = cv2.cvtColor(out_image, cv2.COLOR_BGR2GRAY)
+        if self.__colors: out_image = self.__make_colors(out_image)
+        if self.__shapes: out_image = self.__make_shapes(out_image)
+        return cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB)
+
     def start(self):
         self.cam_thread = Thread(target=self.__updateFrame, args=())
         self.cam_thread.start()
@@ -109,19 +129,6 @@ class Camera:
     def release(self):
         return self.__capture.release()
 
-    def getFrame(self):
-        out_image = self.__currentFrame
-        if any(self.__processing):
-            self.__currentGrayFrame = cv2.cvtColor(out_image, cv2.COLOR_BGR2GRAY)
-        if self.__colors: out_image = self.__make_colors(out_image)
-        if self.__shapes: out_image = self.__make_shapes(out_image)
-        return out_image
-
-    def tog_colors(self):
-        if self.__colors: self.__colors = False
-        else: self.__colors = True
-
-    def tog_shapes(self):
-        if self.__shapes: self.__shapes = False
-        else: self.__shapes = True
+    def tog_colors(self): self.__colors = not self.__colors
+    def tog_shapes(self): self.__shapes = not self.__shapes
 
