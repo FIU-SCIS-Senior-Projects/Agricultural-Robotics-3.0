@@ -84,6 +84,11 @@ class DCMainApp(object):
 
         # Map marker List
         self.pix_gps_coor = []
+        self.mrkr_list = []
+        self.rect_line = []
+
+        # Radiobutton variable
+        self.rte_selctn_var = IntVar()
 
         # Derivative Constants
         self.sensor_width = self.sensor_width_per * self.win_width
@@ -163,11 +168,11 @@ class DCMainApp(object):
         ###################################Drone startup/shutdown##############################################
 
         self.state_objs = []
-        self.state_objs_names = ["connect", "takeoff", "land", "shutdown", "quit"]
-        self.state_label_text = ["Connect", "Launch", "Land", "Shutdown", "Quit GUI"]
-        self.state_commands = [self.d_connect, self.take_off, self.d_land, self.shutdown, self.quit]
-        self.state_rows = [0, 0, 0, 1, 11]
-        self.state_cols = [0, 1, 2, 2, 0]
+        self.state_objs_names = ["connect", "takeoff", "land", "shutdown", "quit", "clear", "launch rte."]
+        self.state_label_text = ["Connect", "Launch", "Land", "Shutdown", "Quit GUI", "Clear Sel.", "Start Route"]
+        self.state_commands = [self.d_connect, self.take_off, self.d_land, self.shutdown, self.quit, self.clear_slctns, self.lnch_route]
+        self.state_rows = [0, 6, 6, 1, 12, 12,11]
+        self.state_cols = [0, 0, 2, 0, 0, 2, 2]
 
         for i in range(len(self.state_objs_names)):
             self.state_objs.append(tk.Button(
@@ -185,7 +190,7 @@ class DCMainApp(object):
         self.xz_objs_names = ["up", "forward", "hover", "backward", "down"]
         self.xz_label_text = ["Move Up", "Forward", "Hover", "Backward", "Move Down"]
         self.xz_commands = [self.d_moveup, self.d_forward, self.d_hover, self.d_backward, self.d_movedown]
-        self.xz_rows = [6, 7, 8, 9, 10]
+        self.xz_rows = [2, 3, 4, 5, 6]
 
 
         for i in range(len(self.xz_objs_names)):
@@ -205,7 +210,7 @@ class DCMainApp(object):
         self.y_label_text = ["Turn Left", "Left", "Right", "Turn Right"]
         self.y_commands = [self.d_turnleft, self.d_left, self.d_right, self.d_turnright]
         self.y_cols = [0,0,2,2]
-        self.x_rows = [7,8,7,8]
+        self.x_rows = [3,4,3,4]
 
         for i in range(len(self.y_objs_names)):
             self.y_objs.append(tk.Button(
@@ -221,8 +226,20 @@ class DCMainApp(object):
 
         self.maparea = tk.Canvas(self.controllerside2, bg='black',
             width=self.map_width, height=self.map_height)
-        self.maparea.bind("<Button-1>",self.capt_clicks)
+        #self.maparea.bind("<Button-1>",self.capt_clicks)
         self.maparea.grid(row=0, column=0)
+
+        self.rad_waypnts = tk.Radiobutton(self.controllerside,text="Waypoint"
+                                                             ,variable= self.rte_selctn_var
+                                                             ,value=1,command=self.route_selctn)
+        self.rad_waypnts.config(bg= self.control_color_back,state=DISABLED)
+        self.rad_waypnts.grid(row=11,column=0)
+
+        self.rad_roi = tk.Radiobutton(self.controllerside,text="Rectangle"
+                                                         ,variable=self.rte_selctn_var
+                                                         ,value=2,command=self.route_selctn)
+        self.rad_roi.config(bg= self.control_color_back, state=DISABLED)
+        self.rad_roi.grid(row=11,column=1)
 
         self.droneimg = tk.Label(self.controllerside2)
         self.droneimg.grid(row=0,column=2)
@@ -238,7 +255,8 @@ class DCMainApp(object):
         self.map_drone_mrkr = ImageTk.PhotoImage(self.drone_loc)
         self.map_b_err = ImageTk.PhotoImage(self.bound_err)
 
-        self.dr_img = self.maparea.create_image(0,0,image=self.map_drone)
+        self.dr_img = self.maparea.create_image(0,0,image=self.map_drone,state=HIDDEN)
+        self.map_mrkrs = self.maparea.create_image(0,0,image=self.map_drone_mrkr,state=HIDDEN)
 
     ###################################GUI Drone button functions########################################
     def senActivate(self):
@@ -311,16 +329,66 @@ class DCMainApp(object):
         curr_px = ((CURRLONG - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
         curr_py = ((CURRLAT - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
 
-        self.dr_img = self.maparea.create_image(curr_px,curr_py,image=self.map_drone)
+        self.dr_img = self.maparea.create_image(curr_px,curr_py,image=self.map_drone,state=NORMAL)
         #redraw
-        self.root.after(1000, self.act_drone_loc)
+        self.root.after(900, self.act_drone_loc)
 
     def rend_mrkrs(self):
-        self.maparea.create_image(self.clk_pix_x,
-                                  self.clk_pix_y,
-                                  image=self.map_drone_mrkr) # Draw marker
+        self.map_mrkrs = self.maparea.create_image(self.clk_pix_x,self.clk_pix_y-14
+                                                                 ,image=self.map_drone_mrkr
+                                                                 , state=NORMAL) # Draw marker
+        self.mrkr_list.append(self.map_mrkrs)
 
-    def capt_clicks(self,event):
+    def rend_rect_mrkrs(self):
+            self.vrtx_pair0 = self.clk_arr[0]
+            self.vrtx_pair1 = self.clk_arr[1]
+            self.vrtx_x0_0   = self.vrtx_pair0[0]
+            self.vrtx_y0_0   = self.vrtx_pair0[1]
+            self.vrtx_x1_0   = self.vrtx_pair1[0]
+            self.vrtx_y1_0   = self.vrtx_pair1[1]
+            # set remaining vertices for ROI list
+            self.vrtx_x0_1   = self.vrtx_pair1[0]
+            self.vrtx_y0_1   = self.vrtx_pair0[1]
+            self.vrtx_x1_1   = self.vrtx_pair0[0]
+            self.vrtx_y1_1   = self.vrtx_pair1[1]
+            self.line = self.maparea.create_line(self.vrtx_x0_0,self.vrtx_y0_0,self.vrtx_x0_1
+                                                               ,self.vrtx_y0_1
+                                                               ,fill='red'
+                                                               ,width=2) #(x0, y0, x1, y1, option, ...)
+            self.map_mrkrs = self.maparea.create_image(self.vrtx_x0_0,self.vrtx_y0_0 -14
+                                                                     ,image=self.map_drone_mrkr
+                                                                     , state=NORMAL) # Draw marker
+            self.mrkr_list.append(self.map_mrkrs)
+            self.rect_line.append(self.line)
+            self.line = self.maparea.create_line(self.vrtx_x0_1,self.vrtx_y0_1,self.vrtx_x1_0
+                                                               ,self.vrtx_y1_0
+                                                               ,fill='red'
+                                                               ,width=2)
+            self.map_mrkrs = self.maparea.create_image(self.vrtx_x0_1,self.vrtx_y0_1-14
+                                                                     ,image=self.map_drone_mrkr
+                                                                     , state=NORMAL) # Draw marker
+            self.mrkr_list.append(self.map_mrkrs)
+            self.rect_line.append(self.line)
+            self.line = self.maparea.create_line(self.vrtx_x1_0,self.vrtx_y1_0,self.vrtx_x1_1
+                                                               ,self.vrtx_y1_1
+                                                               ,fill='red'
+                                                               ,width=2)
+            self.map_mrkrs = self.maparea.create_image(self.vrtx_x1_0,self.vrtx_y1_0-14
+                                                                     ,image=self.map_drone_mrkr
+                                                                     , state=NORMAL) # Draw marker
+            self.mrkr_list.append(self.map_mrkrs)
+            self.rect_line.append(self.line)
+            self.line = self.maparea.create_line(self.vrtx_x1_1,self.vrtx_y1_1,self.vrtx_x0_0
+                                                               ,self.vrtx_y0_0
+                                                               ,fill='red'
+                                                               ,width=2)
+            self.map_mrkrs = self.maparea.create_image(self.vrtx_x1_1,self.vrtx_y1_1-14
+                                                                     ,image=self.map_drone_mrkr
+                                                                     , state=NORMAL) # Draw marker
+            self.mrkr_list.append(self.map_mrkrs)
+            self.rect_line.append(self.line)
+
+    def waypoint_rte(self,event):
         self.clk_pix_x = event.x                # Recent event variables
         self.clk_pix_y = event.y
 
@@ -329,11 +397,43 @@ class DCMainApp(object):
 
         self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
         self.pix_gps_coor.append([self.pix_gps_lat,self.pix_gps_lon]) #List of GPS locations
-        for point in range(len(self.clk_arr)):
-            print self.clk_arr[point]
-            print self.pix_gps_coor[point]
 
         self.rend_mrkrs()
+
+    def roi_rect_rte(self,event):
+        self.clk_pix_x = event.x                # Recent event variables
+        self.clk_pix_y = event.y
+
+        self.pix_gps_lon = (self.clk_pix_x * self.pix_dx) + self.MINLONG    # Converted pixels to gps
+        self.pix_gps_lat = (self.clk_pix_y * self.pix_dy) + self.MINLAT
+
+        if(len(self.clk_arr) < 2):
+            self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
+            self.pix_gps_coor.append([self.pix_gps_lat,self.pix_gps_lon]) #List of GPS locations
+            if(len(self.clk_arr) == 2):self.rend_rect_mrkrs()
+
+    def route_selctn(self):
+        if(self.rte_selctn_var.get() == 1):
+            self.maparea.bind("<Button-1>",self.waypoint_rte)
+        elif(self.rte_selctn_var.get() == 2):
+            self.maparea.bind("<Button-1>",self.roi_rect_rte)
+
+    def lnch_route(self):
+        print ">>>Drone Beginning Route"
+
+    def clear_slctns(self):
+        self.clk_pix_x = ''
+        self.clk_pix_y = ''
+        self.clk_arr = []
+        self.pix_gps_coor = []
+        for mrkr in range(len(self.mrkr_list)):
+            self.maparea.delete(self.mrkr_list[mrkr])
+        self.mrkr_list = []
+        for line in range(len(self.rect_line)):
+            self.maparea.delete(self.rect_line[line])
+        self.rect_line = []
+        print ">>>Route removed"
+
 
     def take_off(self):
         self.drone.takeoff()
@@ -533,6 +633,10 @@ class DCMainApp(object):
         self.senActivate()
         self.render_map()
         self.act_drone_loc()
+        self.rad_waypnts.config(bg= self.control_color_back,state=NORMAL)
+        self.rad_roi.config(bg= self.control_color_back, state=NORMAL)
+
+
 
     def d_test(self):
         self.d_smooth()
