@@ -1,9 +1,8 @@
 from Tkinter import *
 from PIL import Image, ImageTk
 import cv2, math, select, sys, time
-from ps_drone import Drone
+from ps_sim import Drone
 from navigator import Navigator
-from viewer import Camera
 from threading import Event, Thread
 from multiprocessing import Process
 from decimal import Decimal
@@ -55,7 +54,6 @@ class DCMainApp(object):
         self.sensor_color_back = "lightgrey"
         self.control_color_back = "lightslategrey"
         self.sensor_width_per = 0.15
-        self.camera_width_per = 1.0 - self.sensor_width_per
         self.control_width_per = 1.0 - self.sensor_width_per
         self.stat_refresh = 200 # ms
 
@@ -94,7 +92,6 @@ class DCMainApp(object):
         # Derivative Constants
         self.sensor_width = self.sensor_width_per * self.win_width
         self.control_width = self.control_width_per * self.win_width
-        self.camera_width = self.camera_width_per * self.win_width
         self.button_text = (
                 self.button_text_face, self.button_text_size, self.button_text_style)
         self.button_text2 = (
@@ -103,13 +100,11 @@ class DCMainApp(object):
         # Object fields
         self.drone = None              #Drone object
         self.navigator = None      #Navigator object
-        self.camera = None            #Camera object
         self.root = root
         self.root.title("D.F.C. - Drone Flight Controller")
 
         # Controller
         self.controllerside = tk.Frame(self.root)  #Mainwindow right
-        #self.controllerside.grid(row=0, column=3, columnspan=30, rowspan=30)
         self.controllerside.grid(rowspan=2, column=1, sticky="nsew")
         self.controllerside.config(width=self.sensor_width,
                 height=self.win_height, background=self.control_color_back)
@@ -120,21 +115,6 @@ class DCMainApp(object):
         self.cameraside.grid(row=0, column=2, sticky="nsew")
         self.cameraside.config(width=self.map_width,
                 height=self.map_height, background=self.control_color_back)
-        cam_img = np.zeros((self.cam_width, self.cam_height, 3), np.uint8)
-        cam_img = Image.fromarray(cam_img)
-        cam_img = ImageTk.PhotoImage(cam_img)
-        self.panel_cam = tk.Label(
-		self.cameraside,
-                width=self.cam_width,
-                height=self.cam_height,
-                image = cam_img, 
-		bg='black')
-	self.panel_cam.cam_img = cam_img
-        self.panel_cam.grid(
-                row=0, column=0,
-                columnspan=30, rowspan=30,
-                sticky=tk.W+tk.N)
-        self.camera_event = Event()
 
         # Static GeoMap Container
         self.controllerside2 = tk.Frame(self.root)
@@ -145,15 +125,6 @@ class DCMainApp(object):
         # TODO ADDED IN MERGE, TO BE CLEANED
         self.landing = False
         self.threshold = 2.0
-
-        # Blue button #
-        self.blue_button = tk.Button(
-                self.controllerside,
-                text="Blue",
-                highlightbackground=self.control_color_back,
-                command=self.d_blue)
-        self.blue_button.config(width=self.button_width,font=self.button_text)
-        self.blue_button.grid(row=0, column=1)
 
         # Test button #
         self.test_button = tk.Button(
@@ -239,7 +210,6 @@ class DCMainApp(object):
 
         self.maparea = tk.Canvas(self.controllerside2, bg='black',
             width=self.map_width, height=self.map_height)
-        #self.maparea.bind("<Button-1>",self.capt_clicks)
         self.maparea.grid(row=0, column=0)
 
         self.rad_waypnts = tk.Radiobutton(self.controllerside,text="Waypoint"
@@ -277,7 +247,6 @@ class DCMainApp(object):
         self.altstat()
         self.velstat()
         self.gpsstat()
-        self.camstat()
 
     def battstat(self):
         battdis = self.sensor_objs_names.index("battdis")
@@ -290,14 +259,6 @@ class DCMainApp(object):
             self.drone.getBattery()[0],
             self.drone.getBattery()[1]))
         self.root.after(1000, self.battstat)
-
-    def camstat(self):
-        cam_img = self.camera.getFrame()
-        cam_img = Image.fromarray(cam_img)
-        cam_img = ImageTk.PhotoImage(cam_img)
-        self.panel_cam.config(image = cam_img)
-        self.panel_cam.cam_img = cam_img
-        self.root.after(100, self.camstat)
 
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
@@ -464,7 +425,7 @@ class DCMainApp(object):
 
     def d_forward(self):
         self.controller_manual.set()
-        #self.drone.moveForward()
+        self.drone.moveForward()
 
     def d_backward(self):
         self.controller_manual.set()
@@ -498,10 +459,7 @@ class DCMainApp(object):
 
     def quit(self):
         self.controller_manual.set()
-        self.camera_event.set()
-        if self.drone != None: self.drone.shutdown     # Land drone and discard drone object
-        if self.camera != None: self.camera.cam_thread.join()
-        if self.camera != None: self.camera.release()   # Shutdown camera
+        if self.drone != None: self.drone.shutdown()     # Land drone and discard drone object
         self.root.destroy()     # Discard Main window object
         print "Exiting GUI"
 
@@ -559,10 +517,10 @@ class DCMainApp(object):
         move_acc = [ 0.00,  0.15,  0.00,  0.00]
 
         # Begin test
-        #self.drone.takeoff()
+        self.drone.takeoff()
         time.sleep(3)
         start_time = time.time()
-        #self.drone.move(*move_acc)
+        self.drone.move(*move_acc)
         print "self.drone.move({})".format(move_acc)
 
         # TODO
@@ -594,7 +552,7 @@ class DCMainApp(object):
                 done = True
 
         # Finish with a land
-        #self.drone.land()
+        self.drone.land()
 
     # flight buttons
     def d_smooth(self):
@@ -638,26 +596,13 @@ class DCMainApp(object):
 
         # Initialize drone and navigator objs
         self.drone = Drone()
-        self.drone.startup()
-        self.drone.reset()
         self.navigator = Navigator(self.drone)
         self.navigator.mod_waypoints(gps_targets, reset=True)
-        self.camera = Camera(
-                self.drone,
-                self.cam_width,
-                self.cam_height,
-                self.camera_event)
-        self.camera.start()
         self.senActivate()
         self.render_map()
         self.act_drone_loc()
         self.rad_waypnts.config(bg= self.control_color_back,state=NORMAL)
         self.rad_roi.config(bg= self.control_color_back, state=NORMAL)
-
-
-
-    def d_blue(self):
-        self.camera.tog_colors()
 
     def d_test(self):
         self.d_smooth()
@@ -667,7 +612,6 @@ def main():
     root = tk.Tk()
     root.geometry("{}x{}".format(WIN_WIDTH, WIN_HEIGHT)) #GUI window dimensions
     drone_GUI = DCMainApp(root)
-    #root.protocol("WM_DELETE_WINDOW", drone_GUI.quit)
 
     # Run GUI
     root.mainloop()
