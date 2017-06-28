@@ -596,6 +596,8 @@ class DCMainApp(object):
 
         # Initialize drone and navigator objs
         self.drone = Drone()
+        self.drone.startup()
+        self.drone.reset()
         self.navigator = Navigator(self.drone)
         self.navigator.mod_waypoints(gps_targets, reset=True)
         self.senActivate()
