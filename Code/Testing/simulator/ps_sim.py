@@ -9,8 +9,7 @@ class Drone(object):
         self.__status = ["landed", "hovering", "moving"]
         self.__curr_status = self.__status[0]
         self.__speeds = [0.0, 0.0, 0.0, 0.0]
-        #self.__nav_update_spd = 1.0 / 200 # original navdata speed
-        self.__nav_update_spd = 1.0 # test navdata speed
+        self.__nav_update_spd = 1.0 / 200 # original navdata speed
         self.__speed_def = 1.0
 
         # accessed values from navigator
@@ -66,9 +65,10 @@ class Drone(object):
                 dx = self.__speeds[1] * self.__nav_update_spd
                 dy = self.__speeds[0] * self.__nav_update_spd
                 dz = self.__speeds[2] * self.__nav_update_spd
+                dt = self.__speeds[3] * self.__nav_update_spd
                 
                 # adjusting altitude
-                self.NavData["altitude"][0] += dz
+                self.NavData["altitude"][0] += dz * 1000
 
                 # adjusting latitude
                 self.NavData["gps"][0] += math.sin(math.radians(hdg)) * dx / 111132
@@ -78,19 +78,10 @@ class Drone(object):
                 self.NavData["gps"][1] += math.sin(math.radians(hdg)) * dy / 111132
                 self.NavData["gps"][1] += math.cos(math.radians(hdg)) * dx / 111132
 
-            time.sleep(self.__nav_update_spd)
+                # adjusting heading
+                self.NavData["magneto"][0] += dt * 1000
 
-    def turnAngle(self, ndir, speed, *args):
-        if self.__curr_status == self.__status[0]: return False
-        target = self.NavData["magneto"][0] + ndir
-        if ndir > 0: turn = ndir
-        else: turn = -ndir
-        self.__curr_status = self.__status[2]
-        while self.NavData["magneto"][0] != target:
-            self.NavData["magneto"][0] += turn * self.__nav_update_spd * speed
             time.sleep(self.__nav_update_spd)
-        self.__curr_status = self.__status[1]
-        return True
 
     def hover(self):
         if self.__curr_status == self.__status[0]: return False
