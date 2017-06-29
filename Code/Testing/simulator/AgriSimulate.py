@@ -49,7 +49,7 @@ class DCMainApp(object):
         self.button_text_bgrnd = "black"
         self.button_text_face = "Arial"
         self.button_text_size = 10
-        self.button_text_size2 = 12
+        self.button_text_size2 = 8
         self.button_text_style = "bold"
         self.sensor_color_back = "lightgrey"
         self.control_color_back = "lightslategrey"
@@ -137,9 +137,9 @@ class DCMainApp(object):
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
-        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis"]
-        self.sensor_label_text = [" ", " ", " ", " "]
-        self.sensor_cols = [1,2,3,4]
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis", "hdgdis"]
+        self.sensor_label_text = [" ", " ", " ", " ", " "]
+        self.sensor_cols = [1,2,3,4,5]
 
         for i in range(len(self.sensor_objs_names)):
             self.sensor_objs.append(tk.Label(
@@ -247,6 +247,7 @@ class DCMainApp(object):
         self.altstat()
         self.velstat()
         self.gpsstat()
+        self.hdgstat()
 
     def battstat(self):
         battdis = self.sensor_objs_names.index("battdis")
@@ -255,14 +256,14 @@ class DCMainApp(object):
         else:
             self.sensor_objs[battdis].config(fg="purple")
 
-        self.sensor_objs[battdis].config(text="Battery: {}'%' State: {}".format(
+        self.sensor_objs[battdis].config(text="bat: {}'%' st: {}".format(
             self.drone.getBattery()[0],
             self.drone.getBattery()[1]))
         self.root.after(1000, self.battstat)
 
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
-        altDisplay = "Altitude: {}".format(
+        altDisplay = "alt: {}".format(
                 Decimal(
                     self.navigator.get_nav()["alt"]
                     ).quantize(Decimal('0.001')))
@@ -271,7 +272,7 @@ class DCMainApp(object):
 
     def velstat(self):
         veldis = self.sensor_objs_names.index("veldis")
-    	velDisplay = "Velocity: {}".format(
+    	velDisplay = "vel: {}".format(
                 Decimal(np.hypot(
                     self.navigator.get_nav()["vel"][0],
                     self.navigator.get_nav()["vel"][1])
@@ -281,11 +282,18 @@ class DCMainApp(object):
 
     def gpsstat(self):
         gpsdis = self.sensor_objs_names.index("gpsdis")
-        gpsDisplay = "Latitude: {}  Longitude: {}".format(
+        gpsDisplay = "lat: {}  lon: {}".format(
                 self.navigator.get_nav()["gps"][0],
                 self.navigator.get_nav()["gps"][1])
     	self.sensor_objs[gpsdis].config(text=gpsDisplay)
     	self.root.after(self.stat_refresh, self.gpsstat)
+
+    def hdgstat(self):
+        hdgdis = self.sensor_objs_names.index("hdgdis")
+        hdgDisplay = "hdg: {}".format(
+                self.navigator.get_nav()["deg"])
+    	self.sensor_objs[hdgdis].config(text=hdgDisplay)
+    	self.root.after(self.stat_refresh, self.hdgstat)
 
     def render_map(self):
         cent_mapx = (self.map_width/2) + 3
