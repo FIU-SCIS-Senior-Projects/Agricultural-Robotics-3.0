@@ -81,7 +81,6 @@ class Drone(object):
             time.sleep(self.__nav_update_spd)
 
     def turnAngle(self, ndir, speed, *args):
-        print ">>> turnAngle() invoked"
         if self.__curr_status == self.__status[0]: return False
         target = self.NavData["magneto"][0] + ndir
         if ndir > 0: turn = ndir
@@ -94,7 +93,6 @@ class Drone(object):
         return True
 
     def hover(self):
-        print ">>> hover() invoked"
         if self.__curr_status == self.__status[0]: return False
         time.sleep(0.1)
         self.__still.set()
@@ -102,7 +100,6 @@ class Drone(object):
         return True
 
     def takeoff(self):
-        print ">>> takeoff() invoked"
         if self.__curr_status != self.__status[0]: return False
         self.__curr_status = self.__status[2]
         while self.NavData["altitude"][0] < 0.25:
@@ -113,7 +110,6 @@ class Drone(object):
         return True
 
     def land(self):
-        print ">>> land() invoked"
         if self.__curr_status == self.__status[0]: return False
         while self.NavData["altitude"][0] > 0:
             print self.NavData["altitude"][0]
@@ -123,7 +119,6 @@ class Drone(object):
         return True
 
     def shutdown(self):
-        print ">>> shutdown() invoked"
         if self.__curr_status != self.__status[0]: self.land()
         self.__shutdown.set()
         self.__navdata.join()
@@ -131,7 +126,6 @@ class Drone(object):
         return True
 
     def move(self, leftright, backwardforward, downup, turnleftright): 
-        print ">>> move() invoked"
         if self.__curr_status == self.__status[0]: return False
         self.__speeds = [leftright, backwardforward, downup, turnleftright]
         self.__curr_status = self.__status[2]
@@ -139,49 +133,41 @@ class Drone(object):
         return True
 
     def moveForward(self, *args):
-        print ">>> moveForward() invoked"
         try: speed = args[0]
         except: speed = self.__speed_def
         return self.move(0.0, speed, 0.0, 0.0)
 
     def moveBackward(self, *args):
-        print ">>> moveBackward() invoked"
         try: speed = args[0]
         except: speed = self.__speed_def
         return self.move(0.0, -speed, 0.0, 0.0)
 
     def moveLeft(self, *args):
-        print ">>> moveLeft() invoked"
         try: speed = args[0]
         except: speed = self.__speed_def
         return self.move(-speed, 0.0, 0.0, 0.0)
 
     def moveRight(self, *args):
-        print ">>> moveRight() invoked"
         try: speed = args[0]
         except: speed = self.__speed_def
         return self.move(speed, 0.0, 0.0, 0.0)
 
     def moveUp(self, *args):
-        print ">>> moveUp() invoked"
         try: speed = args[0]
         except: speed = self.__speed_def
         return self.move(0.0, 0.0, speed, 0.0)
 
     def moveDown(self, *args):
-        print ">>> moveDown() invoked"
         try: speed = args[0]
         except: speed = self.__speed_def
         return self.move(0.0, 0.0, -speed, 0.0)
 
     def turnLeft(self, *args):
-        print ">>> turnLeft() invoked"
         try: speed = args[0]
         except: speed = self.__speed_def
         return self.move(0.0, 0.0, 0.0, -speed)
 
     def turnRight(self, *args):
-        print ">>> turnRight() invoked"
         try: speed = args[0]
         except: speed = self.__speed_def
         return self.move(0.0, 0.0, 0.0, speed)
