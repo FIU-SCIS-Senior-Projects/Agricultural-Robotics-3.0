@@ -62,8 +62,8 @@ class Drone(object):
         while not self.__shutdown.is_set():
             if not self.__still.is_set():
                 hdg = self.NavData["magneto"][0]
-                dx = self.__speeds[1] * self.__nav_update_spd
                 dy = self.__speeds[0] * self.__nav_update_spd
+                dx = self.__speeds[1] * self.__nav_update_spd
                 dz = self.__speeds[2] * self.__nav_update_spd
                 dt = self.__speeds[3] * self.__nav_update_spd
                 
@@ -71,15 +71,16 @@ class Drone(object):
                 self.NavData["altitude"][0] += dz * 1000
 
                 # adjusting latitude
-                self.NavData["gps"][0] += math.sin(math.radians(hdg)) * dx / 111132
-                self.NavData["gps"][0] += math.cos(math.radians(hdg)) * dy / 111132
+                self.NavData["gps"][0] -= math.sin(math.radians(hdg)) * dx / 111132
+                self.NavData["gps"][0] -= math.cos(math.radians(hdg)) * dy / 111132
 
                 # adjusting longitude
                 self.NavData["gps"][1] += math.sin(math.radians(hdg)) * dy / 111132
                 self.NavData["gps"][1] += math.cos(math.radians(hdg)) * dx / 111132
 
                 # adjusting heading
-                self.NavData["magneto"][0] += dt * 1000
+                currMag = self.NavData["magneto"][0]
+                self.NavData["magneto"][0] = ((dt * 100) + currMag + 360) % 360
 
             time.sleep(self.__nav_update_spd)
 
@@ -93,18 +94,16 @@ class Drone(object):
     def takeoff(self):
         if self.__curr_status != self.__status[0]: return False
         self.__curr_status = self.__status[2]
-        while self.NavData["altitude"][0] < 0.25:
-            print self.NavData["altitude"][0]
-            print "moveUp(): {}".format(self.moveUp())
+        while self.NavData["altitude"][0] < 0.5:
+            self.moveUp()
             time.sleep(self.__nav_update_spd)
-        print "hover(): {}".format(self.hover())
+        self.hover()
         return True
 
     def land(self):
         if self.__curr_status == self.__status[0]: return False
         while self.NavData["altitude"][0] > 0:
-            print self.NavData["altitude"][0]
-            print "moveDown(): {}".format(self.moveDown())
+            self.moveDown()
             time.sleep(self.__nav_update_spd)
         self.__curr_status = self.__status[0]
         return True
@@ -156,12 +155,12 @@ class Drone(object):
     def turnLeft(self, *args):
         try: speed = args[0]
         except: speed = self.__speed_def
-        return self.move(0.0, 0.0, 0.0, -speed)
+        return self.move(0.0, 0.0, 0.0, speed)
 
     def turnRight(self, *args):
         try: speed = args[0]
         except: speed = self.__speed_def
-        return self.move(0.0, 0.0, 0.0, speed)
+        return self.move(0.0, 0.0, 0.0, -speed)
 
     # from original ps_drone
     def angleDiff(self, base, value):
