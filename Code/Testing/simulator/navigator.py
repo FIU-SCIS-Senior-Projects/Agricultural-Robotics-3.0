@@ -156,9 +156,9 @@ class Navigator:
             self.__targets.remove(start)
             temp_start = start
 
-    def __next_tar(self):
+    def next_tar(self):
         """Pop the next coordinate from the queue to current target"""
-        if self.tar_gps == self.__home:
+        if self.tar_gps == self.__home or not self.waypoints:
             self.tar_gps = None
             return True
         try: self.tar_gps = self.waypoints.popleft()
@@ -237,9 +237,9 @@ class Navigator:
                 self.__stats["deg"], self.__tar_angle)
 
         # If drastic turn is needed, only perform that turn
-        if   angle_diff >  10.0:
+        if   angle_diff >  6.0:
             move_speed, turn_speed = 0.0,           -self.__HARD_TURN
-        elif angle_diff < -10.0:
+        elif angle_diff < -6.0:
             move_speed, turn_speed = 0.0,            self.__HARD_TURN
         elif angle_diff > 0:
             move_speed, turn_speed = self.__DEF_SPD,  -self.__SOFT_TURN
