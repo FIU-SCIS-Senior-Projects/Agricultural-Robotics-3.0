@@ -643,7 +643,7 @@ class DCMainApp(object):
                 movement, dist = self.navigator.get_move()
                 if movement == [0.0, 0.0, 0.0, 0.0]: break
             self.navigator.set_target(None)
-            try: self.navigator.set_target(self.navigator.pop(0))
+            try: self.navigator.set_target(self.navigator.waypoints.popleft())
             except IndexError: self.navigator.set_target(None)
 
         self.drone.hover()
@@ -719,7 +719,7 @@ class DCMainApp(object):
         self.camera.tog_colors()
 
     def d_test(self):
-        self.d_smooth()
+        self.d_nav()
 
 def main():
     # Initialize GUI

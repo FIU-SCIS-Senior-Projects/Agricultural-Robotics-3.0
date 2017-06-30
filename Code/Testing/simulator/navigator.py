@@ -158,7 +158,7 @@ class Navigator:
 
     def __next_tar(self):
         """Pop the next coordinate from the queue to current target"""
-        if self.tar_gps = self.__home: self.tar_gps = None
+        if self.tar_gps == self.__home: self.tar_gps = None
         try: self.tar_gps = self.waypoints.popleft()
         except IndexError: self.tar_gps = self.__home
 
