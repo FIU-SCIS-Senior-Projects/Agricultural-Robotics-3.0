@@ -1,4 +1,4 @@
-import itertools, ps_drone, time, math
+import itertools, ps_sim, time, math
 from threading import Thread
 from collections import deque
 import numpy as np
@@ -127,10 +127,12 @@ class Navigator:
         stats["alt"] = self.__drone.NavData["altitude"][0] / 1000.0
 
         # Turn magnetometer data into heading (degrees)
-        stats["mag"] = self.__drone.NavData["magneto"][0][:-1] # not using z value
-        for i in range(len(stats["mag"])): stats["mag"][i] -= self.__mag_avg[i]
-        stats["deg"] = (360 + (-1 * (math.atan2(
-            stats["mag"][1], stats["mag"][0]) * 180) / math.pi)) % 360
+        #stats["mag"] = self.__drone.NavData["magneto"][0][:-1] # not using z value
+        #for i in range(len(stats["mag"])): stats["mag"][i] -= self.__mag_avg[i]
+        #stats["deg"] = (360 + (-1 * (math.atan2(
+        #    stats["mag"][1], stats["mag"][0]) * 180) / math.pi)) % 360
+        stats["mag"] = self.__drone.NavData["magneto"][0]
+        stats["deg"] = self.__drone.NavData["magneto"][0]
 
         # Set new stats
         return stats
