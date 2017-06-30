@@ -530,7 +530,7 @@ class DCMainApp(object):
     def quit(self):
         self.controller_manual.set()
         #self.camera_event.set()
-        if self.drone != None: self.drone.shutdown     # Land drone and discard drone object
+        if self.drone != None: self.drone.shutdown()     # Land drone and discard drone object
         #if self.camera != None: self.camera.cam_thread.join()
         #if self.camera != None: self.camera.release()   # Shutdown camera
         self.root.destroy()     # Discard Main window object
