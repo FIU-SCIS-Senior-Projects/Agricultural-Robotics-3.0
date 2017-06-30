@@ -109,6 +109,7 @@ class Drone(object):
         while self.NavData["altitude"][0] > 0:
             self.moveDown()
             time.sleep(self.__nav_update_spd)
+        self.hover()
         self.__curr_status = self.__status[0]
         return True
 
