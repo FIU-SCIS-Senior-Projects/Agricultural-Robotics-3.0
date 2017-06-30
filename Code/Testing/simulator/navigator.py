@@ -14,7 +14,7 @@ class Navigator:
         self.__REQ_PACKS = ["altitude", "demo", "gps", "magneto", "raw_measures"]
         self.__SOFT_TURN = 0.1
         self.__HARD_TURN = 0.3
-        self.__DEF_SPD   = 0.3
+        self.__DEF_SPD   = 1.0
         self.__SAMP_NUM  = 150
         self.__SAMP_TIME = 0.005
 
@@ -102,7 +102,7 @@ class Navigator:
         diff = np.sum((points - median)**2, axis=-1)
         diff = np.sqrt(diff)
         med_abs_deviation = np.median(diff)
-        modified_z_score = 0.6745 * diff / med_abs_deviation
+        modified_z_score = 0.6745 * diff / (med_abs_deviation + 1.0e-10)
 
         return modified_z_score > thresh
 
@@ -158,9 +158,12 @@ class Navigator:
 
     def __next_tar(self):
         """Pop the next coordinate from the queue to current target"""
-        if self.tar_gps == self.__home: self.tar_gps = None
+        if self.tar_gps == self.__home:
+            self.tar_gps = None
+            return True
         try: self.tar_gps = self.waypoints.popleft()
         except IndexError: self.tar_gps = self.__home
+        return True
 
     def __calc_distance(self, start, finish):
         """Calculate distance to target"""
@@ -188,7 +191,8 @@ class Navigator:
         p = math.cos(x[0]) * math.sin(y[0])
         p -= math.sin(x[0]) * math.cos(y[0]) * math.cos(y[1] - x[1])
         b = math.atan2(q, p) * 180.0 / math.pi
-        return (b + 360.0) % 360.0
+        #return (b + 360.0) % 360.0
+        return (b + 270.0) % 360.0
 
     def __calc_mag(self):
         """Rotates the drone to acquire mag data to use in normalization."""
