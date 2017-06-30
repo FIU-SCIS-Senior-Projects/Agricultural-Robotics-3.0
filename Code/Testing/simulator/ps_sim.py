@@ -1,5 +1,7 @@
 from threading import Thread, Event
-import math, time
+from math import cos, radians, sin
+import numpy as np
+import time
 
 class Drone(object):
     def __init__(self):
@@ -44,12 +46,9 @@ class Drone(object):
                 target = self.__nav_data_inc,
                 args = ())
 
-        print ">>> Simulator intialization complete"
-
-    def startup(self):
         self.__navdata.start()
         self.__movement.start()
-        return True
+        print ">>> Simulator intialization complete"
 
     def __nav_data_inc(self):
         print ">>> NavDataCount Incrementer Begun"
@@ -61,26 +60,31 @@ class Drone(object):
         print ">>> Position Updater Begun"
         while not self.__shutdown.is_set():
             if not self.__still.is_set():
-                hdg = self.NavData["magneto"][0]
-                dy = self.__speeds[0] * self.__nav_update_spd
-                dx = self.__speeds[1] * self.__nav_update_spd
-                dz = self.__speeds[2] * self.__nav_update_spd
+                hdg = radians(self.NavData["magneto"][0])
+                rot = np.matrix([
+                        [ cos(hdg), sin(hdg), 0.0],
+                        [-sin(hdg), cos(hdg), 0.0],
+                        [      0.0,      0.0, 1.0]])
+                dz  = self.__speeds[2] * self.__nav_update_spd
                 dt = self.__speeds[3] * self.__nav_update_spd
+                mov = np.matrix([
+                    [self.__speeds[1] * self.__nav_update_spd],
+                    [self.__speeds[0] * self.__nav_update_spd],
+                    [                                      dt]])
+                dxy = rot * mov
                 
                 # adjusting altitude
                 self.NavData["altitude"][0] += dz * 1000
 
-                # adjusting latitude
-                self.NavData["gps"][0] -= math.sin(math.radians(hdg)) * dx / 111132
-                self.NavData["gps"][0] -= math.cos(math.radians(hdg)) * dy / 111132
-
-                # adjusting longitude
-                self.NavData["gps"][1] += math.sin(math.radians(hdg)) * dy / 111132
-                self.NavData["gps"][1] += math.cos(math.radians(hdg)) * dx / 111132
-
                 # adjusting heading
                 currMag = self.NavData["magneto"][0]
                 self.NavData["magneto"][0] = ((dt * 100) + currMag + 360) % 360
+
+                # adjusting latitude
+                self.NavData["gps"][0] += float(dxy[1] / 111132)
+
+                # adjusting longitude
+                self.NavData["gps"][1] += float(dxy[0] / 111132)
 
             time.sleep(self.__nav_update_spd)
 
@@ -117,7 +121,7 @@ class Drone(object):
 
     def move(self, leftright, backwardforward, downup, turnleftright): 
         if self.__curr_status == self.__status[0]: return False
-        self.__speeds = [leftright, backwardforward, downup, turnleftright]
+        self.__speeds = [-leftright, backwardforward, downup, turnleftright]
         self.__curr_status = self.__status[2]
         self.__still.clear()
         return True
@@ -135,12 +139,12 @@ class Drone(object):
     def moveLeft(self, *args):
         try: speed = args[0]
         except: speed = self.__speed_def
-        return self.move(-speed, 0.0, 0.0, 0.0)
+        return self.move(speed, 0.0, 0.0, 0.0)
 
     def moveRight(self, *args):
         try: speed = args[0]
         except: speed = self.__speed_def
-        return self.move(speed, 0.0, 0.0, 0.0)
+        return self.move(-speed, 0.0, 0.0, 0.0)
 
     def moveUp(self, *args):
         try: speed = args[0]
@@ -176,4 +180,5 @@ class Drone(object):
     def reconnectNavData(self, *args): return True
     def getBattery(self, *args): return ["100", "OK"]
     def reset(self, *args): return True
+    def startup(self, *args): return True
 
