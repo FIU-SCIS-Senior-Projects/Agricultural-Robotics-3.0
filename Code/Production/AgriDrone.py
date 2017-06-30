@@ -87,6 +87,8 @@ class DCMainApp(object):
         self.pix_gps_coor = []
         self.mrkr_list = []
         self.rect_line = []
+        self.gps_vrtcs = []
+        self.waypoints = []
 
         # Radiobutton variable
         self.rte_selctn_var = IntVar()
@@ -127,7 +129,7 @@ class DCMainApp(object):
 		self.cameraside,
                 width=self.cam_width,
                 height=self.cam_height,
-                image = cam_img, 
+                image = cam_img,
 		bg='black')
 	self.panel_cam.cam_img = cam_img
         self.panel_cam.grid(
@@ -349,7 +351,14 @@ class DCMainApp(object):
         self.map_mrkrs = self.maparea.create_image(self.clk_pix_x,self.clk_pix_y-14
                                                                  ,image=self.map_drone_mrkr
                                                                  , state=NORMAL) # Draw marker
+
+        self.getlat =  ((self.clk_pix_y * (self.MAXLAT - self.MINLAT))/(self.map_height-0)) + self.MINLAT
+        self.getlong = ((self.clk_pix_x * (self.MAXLONG - self.MINLONG))/(self.map_width-0)) + self.MINLONG
+
+        self.waypoints.append([self.getlat,self.getlong])
+        self.navigator.mod_waypoints(self.waypoints)
         self.mrkr_list.append(self.map_mrkrs)
+        self.waypoints = []
 
     def rend_rect_mrkrs(self):
             self.vrtx_pair0 = self.clk_arr[0]
@@ -416,13 +425,30 @@ class DCMainApp(object):
         self.clk_pix_x = event.x                # Recent event variables
         self.clk_pix_y = event.y
 
-        self.pix_gps_lon = (self.clk_pix_x * self.pix_dx) + self.MINLONG    # Converted pixels to gps
-        self.pix_gps_lat = (self.clk_pix_y * self.pix_dy) + self.MINLAT
+        self.getlat =  ((self.clk_pix_y * (self.MAXLAT - self.MINLAT))/(self.map_height-0)) + self.MINLAT
+        self.getlong = ((self.clk_pix_x * (self.MAXLONG - self.MINLONG))/(self.map_width-0)) + self.MINLONG
 
         if(len(self.clk_arr) < 2):
             self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
-            self.pix_gps_coor.append([self.pix_gps_lat,self.pix_gps_lon]) #List of GPS locations
-            if(len(self.clk_arr) == 2):self.rend_rect_mrkrs()
+            self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
+            if(len(self.clk_arr) == 2):
+                self.vrtx_x0_0   = self.pix_gps_coor[0][0]
+                self.vrtx_y0_0   = self.pix_gps_coor[0][1]
+                self.vrtx_x1_0   = self.pix_gps_coor[1][0]
+                self.vrtx_y1_0   = self.pix_gps_coor[1][1]
+                # set remaining vertices for ROI list
+                self.vrtx_x0_1   = self.pix_gps_coor[1][0]
+                self.vrtx_y0_1   = self.pix_gps_coor[0][1]
+                self.vrtx_x1_1   = self.pix_gps_coor[0][0]
+                self.vrtx_y1_1   = self.pix_gps_coor[1][1]
+
+                self.gps_vrtcs.append([self.vrtx_x0_0,self.vrtx_y0_0])
+                self.gps_vrtcs.append([self.vrtx_x0_1,self.vrtx_y0_1])
+                self.gps_vrtcs.append([self.vrtx_x1_0,self.vrtx_y1_0])
+                self.gps_vrtcs.append([self.vrtx_x1_1,self.vrtx_y1_1])
+
+                self.rend_rect_mrkrs()
+                self.navigator.gen_waypnts(self.gps_vrtcs)
 
     def route_selctn(self):
         if(self.rte_selctn_var.get() == 1):
@@ -438,12 +464,16 @@ class DCMainApp(object):
         self.clk_pix_y = ''
         self.clk_arr = []
         self.pix_gps_coor = []
+        self.gps_vrtcs = []
+
         for mrkr in range(len(self.mrkr_list)):
             self.maparea.delete(self.mrkr_list[mrkr])
         self.mrkr_list = []
         for line in range(len(self.rect_line)):
             self.maparea.delete(self.rect_line[line])
         self.rect_line = []
+        self.gps_vrtcs = []
+        self.navigator.gen_waypnts(self.gps_vrtcs)
         print ">>>Route removed"
 
 
