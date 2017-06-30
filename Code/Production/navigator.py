@@ -48,9 +48,6 @@ class Navigator:
         self.__set_stats()
         self.__home = self.__stats["gps"]
 
-        # GPS path coordinates
-        self.gen_waypnts_arr = []
-
         # Done initializing
         print ">>> NAVIGATOR READY"
 
@@ -282,153 +279,158 @@ class Navigator:
             self.mod_waypoints([old_target])
 
     def gen_waypnts(self,gps_coors):
-        self.range = 6
-        self.rec_vrts_1 = gps_coors[0]   #rec_vrts_1[0] = longitude, rec_vrts_1[1] = latitude
-        self.rec_vrts_2 = gps_coors[1]
-        self.rec_vrts_3 = gps_coors[2]
-        self.rec_vrts_4 = gps_coors[3]
+        if(len(gps_coors) != 0):
+            self.range = 6
+            # GPS path coordinates
+            self.gen_waypnts_arr = []
 
-        # East to West path orientation
-        if(abs(self.rec_vrts_1[1] - self.rec_vrts_3[1]) > abs(self.rec_vrts_1[0]-self.rec_vrts_3[0])
-                                and self.rec_vrts_1[1] > self.rec_vrts_3[1]):
-            # Generate test waypoints longitudinally
-            self.max_vrtcs_lon = abs(self.rec_vrts_1[1] - self.rec_vrts_3[1])/self.range
-            self.temp_lon = self.rec_vrts_1[1]
-            self.temp_lat = self.rec_vrts_1[0]
+            self.rec_vrts_1 = gps_coors[0]
+            self.rec_vrts_2 = gps_coors[1]
+            self.rec_vrts_3 = gps_coors[2]
+            self.rec_vrts_4 = gps_coors[3]
 
-            self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
-            for vrtx in range(self.range):
-                #start vertex -> shortest length -> longest length -> shortest length etc.
-                self.new_tempvrtx = self.temp_lon - self.max_vrtcs_lon
-                if(vrtx % 2 == 0 and vrtx < self.range - 1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_3[0]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lon = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx < self.range -1):
-                    self.gen_waypnts_arr.append([self.temp_lat,self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_1[0]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lon = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_3[0]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_3[1]])
-                    self.new_tempvrtx = 0
-                    break
-                elif(vrtx % 2 == 0 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_2[0]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_2[1]])
-                    self.new_tempvrtx = 0
-                    break
-        #West to East path orientation
-        elif(abs(self.rec_vrts_1[1] - self.rec_vrts_3[1]) > abs(self.rec_vrts_1[0]-self.rec_vrts_3[0])
-                                and self.rec_vrts_1[1] < self.rec_vrts_3[1]):
-            # Generate test waypoints longitudinally
-            self.max_vrtcs_lon = abs(self.rec_vrts_1[1] - self.rec_vrts_3[1])/self.range
-            self.temp_lon = self.rec_vrts_1[1]
-            self.temp_lat = self.rec_vrts_1[0]
+            # East to West path orientation
+            if(abs(self.rec_vrts_1[1] - self.rec_vrts_3[1]) > abs(self.rec_vrts_1[0]-self.rec_vrts_3[0])
+                                    and self.rec_vrts_1[1] > self.rec_vrts_3[1]):
+                # Generate test waypoints longitudinally
+                self.max_vrtcs_lon = abs(self.rec_vrts_1[1] - self.rec_vrts_3[1])/self.range
+                self.temp_lon = self.rec_vrts_1[1]
+                self.temp_lat = self.rec_vrts_1[0]
 
-            self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
-            for vrtx in range(self.range):
-                #start vertex -> shortest length -> longest length -> shortest length etc.
-                self.new_tempvrtx = self.temp_lon + self.max_vrtcs_lon
-                if(vrtx % 2 == 0 and vrtx < self.range - 1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_3[0]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lon = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx < self.range -1):
-                    self.gen_waypnts_arr.append([self.temp_lat,self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_1[0]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lon = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_3[0]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_3[1]])
-                    self.new_tempvrtx = 0
-                    break
-                elif(vrtx % 2 == 0 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_2[0]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_2[1]])
-                    self.new_tempvrtx = 0
-                    break
-        # South to North path orientation
-        elif(abs(self.rec_vrts_1[1] - self.rec_vrts_3[1]) < abs(self.rec_vrts_1[0]-self.rec_vrts_3[0])
-                                and self.rec_vrts_1[0] > self.rec_vrts_3[0]):
-            # Generate test waypoints longitudinally
-            self.max_vrtcs_lat = abs(self.rec_vrts_1[0] - self.rec_vrts_3[0])/self.range
-            self.temp_lon = self.rec_vrts_1[1]
-            self.temp_lat = self.rec_vrts_1[0]
+                self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
+                for vrtx in range(self.range):
+                    #start vertex -> shortest length -> longest length -> shortest length etc.
+                    self.new_tempvrtx = self.temp_lon - self.max_vrtcs_lon
+                    if(vrtx % 2 == 0 and vrtx < self.range - 1):
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lat = self.rec_vrts_3[0]
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lon = self.new_tempvrtx
+                        self.new_tempvrtx = 0
+                    elif(vrtx % 2 == 1 and vrtx < self.range -1):
+                        self.gen_waypnts_arr.append([self.temp_lat,self.new_tempvrtx])
+                        self.temp_lat = self.rec_vrts_1[0]
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lon = self.new_tempvrtx
+                        self.new_tempvrtx = 0
+                    elif(vrtx % 2 == 1 and vrtx == self.range-1):
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lat = self.rec_vrts_3[0]
+                        self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_3[1]])
+                        self.new_tempvrtx = 0
+                        break
+                    elif(vrtx % 2 == 0 and vrtx == self.range-1):
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lat = self.rec_vrts_2[0]
+                        self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_2[1]])
+                        self.new_tempvrtx = 0
+                        break
+            #West to East path orientation
+            elif(abs(self.rec_vrts_1[1] - self.rec_vrts_3[1]) > abs(self.rec_vrts_1[0]-self.rec_vrts_3[0])
+                                    and self.rec_vrts_1[1] < self.rec_vrts_3[1]):
+                # Generate test waypoints longitudinally
+                self.max_vrtcs_lon = abs(self.rec_vrts_1[1] - self.rec_vrts_3[1])/self.range
+                self.temp_lon = self.rec_vrts_1[1]
+                self.temp_lat = self.rec_vrts_1[0]
 
-            self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
-            for vrtx in range(self.range):
-                #start vertex -> shortest length -> longest length -> shortest length etc.
-                self.new_tempvrtx = self.temp_lat - self.max_vrtcs_lat
-                if(vrtx % 2 == 0 and vrtx < self.range - 1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lon = self.rec_vrts_3[1]
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lat = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx < self.range -1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx,self.temp_lon])
-                    self.temp_lon = self.rec_vrts_1[1]
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lat = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lon = self.rec_vrts_3[1]
-                    self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
-                    self.new_tempvrtx = 0
-                    break
-                elif(vrtx % 2 == 0 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
-                    self.new_tempvrtx = 0
-                    break
-        # North to South path orientation
-        elif(abs(self.rec_vrts_1[1] - self.rec_vrts_3[1]) < abs(self.rec_vrts_1[0]-self.rec_vrts_3[0])
-                                and self.rec_vrts_1[0] < self.rec_vrts_3[0]):
-            # Generate test waypoints longitudinally
-            self.max_vrtcs_lat = abs(self.rec_vrts_1[0] - self.rec_vrts_3[0])/self.range
-            self.temp_lon = self.rec_vrts_1[1]
-            self.temp_lat = self.rec_vrts_1[0]
+                self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
+                for vrtx in range(self.range):
+                    #start vertex -> shortest length -> longest length -> shortest length etc.
+                    self.new_tempvrtx = self.temp_lon + self.max_vrtcs_lon
+                    if(vrtx % 2 == 0 and vrtx < self.range - 1):
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lat = self.rec_vrts_3[0]
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lon = self.new_tempvrtx
+                        self.new_tempvrtx = 0
+                    elif(vrtx % 2 == 1 and vrtx < self.range -1):
+                        self.gen_waypnts_arr.append([self.temp_lat,self.new_tempvrtx])
+                        self.temp_lat = self.rec_vrts_1[0]
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lon = self.new_tempvrtx
+                        self.new_tempvrtx = 0
+                    elif(vrtx % 2 == 1 and vrtx == self.range-1):
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lat = self.rec_vrts_3[0]
+                        self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_3[1]])
+                        self.new_tempvrtx = 0
+                        break
+                    elif(vrtx % 2 == 0 and vrtx == self.range-1):
+                        self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
+                        self.temp_lat = self.rec_vrts_2[0]
+                        self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_2[1]])
+                        self.new_tempvrtx = 0
+                        break
+            # South to North path orientation
+            elif(abs(self.rec_vrts_1[1] - self.rec_vrts_3[1]) < abs(self.rec_vrts_1[0]-self.rec_vrts_3[0])
+                                    and self.rec_vrts_1[0] > self.rec_vrts_3[0]):
+                # Generate test waypoints longitudinally
+                self.max_vrtcs_lat = abs(self.rec_vrts_1[0] - self.rec_vrts_3[0])/self.range
+                self.temp_lon = self.rec_vrts_1[1]
+                self.temp_lat = self.rec_vrts_1[0]
 
-            self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
-            for vrtx in range(self.range):
-                #start vertex -> shortest length -> longest length -> shortest length etc.
-                self.new_tempvrtx = self.temp_lat + self.max_vrtcs_lat
-                if(vrtx % 2 == 0 and vrtx < self.range - 1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lon = self.rec_vrts_3[1]
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lat = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx < self.range -1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx,self.temp_lon])
-                    self.temp_lon = self.rec_vrts_1[1]
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lat = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lon = self.rec_vrts_3[1]
-                    self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
-                    self.new_tempvrtx = 0
-                    break
-                elif(vrtx % 2 == 0 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
-                    self.new_tempvrtx = 0
-                    break
-        print self.gen_waypnts_arr
+                self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
+                for vrtx in range(self.range):
+                    #start vertex -> shortest length -> longest length -> shortest length etc.
+                    self.new_tempvrtx = self.temp_lat - self.max_vrtcs_lat
+                    if(vrtx % 2 == 0 and vrtx < self.range - 1):
+                        self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
+                        self.temp_lon = self.rec_vrts_3[1]
+                        self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
+                        self.temp_lat = self.new_tempvrtx
+                        self.new_tempvrtx = 0
+                    elif(vrtx % 2 == 1 and vrtx < self.range -1):
+                        self.gen_waypnts_arr.append([self.new_tempvrtx,self.temp_lon])
+                        self.temp_lon = self.rec_vrts_1[1]
+                        self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
+                        self.temp_lat = self.new_tempvrtx
+                        self.new_tempvrtx = 0
+                    elif(vrtx % 2 == 1 and vrtx == self.range-1):
+                        self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
+                        self.temp_lon = self.rec_vrts_3[1]
+                        self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
+                        self.new_tempvrtx = 0
+                        break
+                    elif(vrtx % 2 == 0 and vrtx == self.range-1):
+                        self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
+                        self.new_tempvrtx = 0
+                        break
+            # North to South path orientation
+            elif(abs(self.rec_vrts_1[1] - self.rec_vrts_3[1]) < abs(self.rec_vrts_1[0]-self.rec_vrts_3[0])
+                                    and self.rec_vrts_1[0] < self.rec_vrts_3[0]):
+                # Generate test waypoints longitudinally
+                self.max_vrtcs_lat = abs(self.rec_vrts_1[0] - self.rec_vrts_3[0])/self.range
+                self.temp_lon = self.rec_vrts_1[1]
+                self.temp_lat = self.rec_vrts_1[0]
 
-    def clear_path(self):
-        self.gen_waypnts_arr = []
+                self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
+                for vrtx in range(self.range):
+                    #start vertex -> shortest length -> longest length -> shortest length etc.
+                    self.new_tempvrtx = self.temp_lat + self.max_vrtcs_lat
+                    if(vrtx % 2 == 0 and vrtx < self.range - 1):
+                        self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
+                        self.temp_lon = self.rec_vrts_3[1]
+                        self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
+                        self.temp_lat = self.new_tempvrtx
+                        self.new_tempvrtx = 0
+                    elif(vrtx % 2 == 1 and vrtx < self.range -1):
+                        self.gen_waypnts_arr.append([self.new_tempvrtx,self.temp_lon])
+                        self.temp_lon = self.rec_vrts_1[1]
+                        self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
+                        self.temp_lat = self.new_tempvrtx
+                        self.new_tempvrtx = 0
+                    elif(vrtx % 2 == 1 and vrtx == self.range-1):
+                        self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
+                        self.temp_lon = self.rec_vrts_3[1]
+                        self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
+                        self.new_tempvrtx = 0
+                        break
+                    elif(vrtx % 2 == 0 and vrtx == self.range-1):
+                        self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
+                        self.new_tempvrtx = 0
+                        break
+            #TODO duplicated behavior consider for refactor
+            self.__waypoints = self.gen_waypnts_arr[:]
+            # Current position is the first point of the path
+            self.__tar_gps == self.__waypoints.pop(0)
+        else: self.gen_waypnts_arr = []

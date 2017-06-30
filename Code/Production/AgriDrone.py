@@ -88,6 +88,7 @@ class DCMainApp(object):
         self.mrkr_list = []
         self.rect_line = []
         self.gps_vrtcs = []
+        self.waypoints = []
 
         # Radiobutton variable
         self.rte_selctn_var = IntVar()
@@ -350,7 +351,14 @@ class DCMainApp(object):
         self.map_mrkrs = self.maparea.create_image(self.clk_pix_x,self.clk_pix_y-14
                                                                  ,image=self.map_drone_mrkr
                                                                  , state=NORMAL) # Draw marker
+
+        self.getlat =  ((self.clk_pix_y * (self.MAXLAT - self.MINLAT))/(self.map_height-0)) + self.MINLAT
+        self.getlong = ((self.clk_pix_x * (self.MAXLONG - self.MINLONG))/(self.map_width-0)) + self.MINLONG
+
+        self.waypoints.append([self.getlat,self.getlong])
+        self.navigator.mod_waypoints(self.waypoints)
         self.mrkr_list.append(self.map_mrkrs)
+        self.waypoints = []
 
     def rend_rect_mrkrs(self):
             self.vrtx_pair0 = self.clk_arr[0]
@@ -464,7 +472,8 @@ class DCMainApp(object):
         for line in range(len(self.rect_line)):
             self.maparea.delete(self.rect_line[line])
         self.rect_line = []
-        self.navigator.clear_path()
+        self.gps_vrtcs = []
+        self.navigator.gen_waypnts(self.gps_vrtcs)
         print ">>>Route removed"
 
 
