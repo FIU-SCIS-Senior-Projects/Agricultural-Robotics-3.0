@@ -590,10 +590,10 @@ class DCMainApp(object):
         move_acc = [ 0.00,  0.15,  0.00,  0.00]
 
         # Begin test
-        #self.drone.takeoff()
+        self.drone.takeoff()
         time.sleep(3)
         start_time = time.time()
-        #self.drone.move(*move_acc)
+        self.drone.move(*move_acc)
         print "self.drone.move({})".format(move_acc)
 
         # TODO
@@ -616,7 +616,7 @@ class DCMainApp(object):
             else:                  move_acc[1]  =  move_def[1]
 
             # Perform movement
-            #self.drone.move(*move_acc)
+            self.drone.move(*move_acc)
             print "self.drone.move({})".format(move_acc)
             time.sleep(1)
 
@@ -625,9 +625,37 @@ class DCMainApp(object):
                 done = True
 
         # Finish with a land
-        #self.drone.land()
+        self.drone.land()
+
+    def nav_waypoints(self):
+        thresh = 3.0
+        movement, dist = self.navigator.get_move()
+        
+        # Begin test
+        self.controller_manual.clear()
+        self.drone.takeoff()
+        time.sleep(1)
+        while self.navigator.tar_gps != None:
+            while (dist < thresh):
+                self.drone.move(*movement)
+                print "self.drone.move({})".format(move_acc)
+                time.sleep(1)
+                movement, dist = self.navigator.get_move()
+                if movement == [0.0, 0.0, 0.0, 0.0]: break
+            self.navigator.set_target(None)
+            try: self.navigator.set_target(self.navigator.pop(0))
+            except IndexError: self.navigator.set_target(None)
+
+        self.drone.hover()
+        self.drone.land()
+        return True
 
     # flight buttons
+    def d_nav(self):
+        moving = Thread(target=self.nav_waypoints, args=())
+        moving.daemon = True
+        moving.start()
+
     def d_smooth(self):
         moving = Thread(target=self.smooth, args=())
         moving.daemon = True
