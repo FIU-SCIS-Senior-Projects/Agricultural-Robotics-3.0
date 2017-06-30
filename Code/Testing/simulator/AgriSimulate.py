@@ -459,6 +459,7 @@ class DCMainApp(object):
 
     def lnch_route(self):
         print ">>>Drone Beginning Route"
+        self.d_nav()
 
     def clear_slctns(self):
         self.clk_pix_x = ''
@@ -719,7 +720,8 @@ class DCMainApp(object):
         self.camera.tog_colors()
 
     def d_test(self):
-        self.d_nav()
+        print self.navigator.waypoints
+        print self.navigator.tar_gps
 
 def main():
     # Initialize GUI
