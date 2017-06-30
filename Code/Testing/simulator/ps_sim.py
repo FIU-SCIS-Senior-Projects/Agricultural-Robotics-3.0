@@ -78,7 +78,7 @@ class Drone(object):
 
                 # adjusting heading
                 currMag = self.NavData["magneto"][0]
-                self.NavData["magneto"][0] = ((dt * 100) + currMag + 360) % 360
+                self.NavData["magneto"][0] = ((dt * 50) + currMag + 360) % 360
 
                 # adjusting latitude
                 self.NavData["gps"][0] += float(dxy[1] / 111132)
