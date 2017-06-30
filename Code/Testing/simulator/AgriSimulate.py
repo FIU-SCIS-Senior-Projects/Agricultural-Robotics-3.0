@@ -495,7 +495,7 @@ class DCMainApp(object):
 
     def d_forward(self):
         self.controller_manual.set()
-        #self.drone.moveForward()
+        self.drone.moveForward()
 
     def d_backward(self):
         self.controller_manual.set()
