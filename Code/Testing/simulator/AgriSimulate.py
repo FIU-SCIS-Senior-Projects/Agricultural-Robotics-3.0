@@ -630,26 +630,21 @@ class DCMainApp(object):
 
     def nav_waypoints(self):
         thresh = 3.0
-        self.navigator.set_target(None)
         self.controller_manual.clear()
-        try: self.navigator.set_target(self.navigator.waypoints.popleft())
-        except IndexError: self.navigator.set_target(None)
+        self.navigator.next_tar()
         movement, dist = self.navigator.get_move()
         
         # Begin test
         self.drone.takeoff()
         time.sleep(1)
-        while self.navigator.tar_gps != None:
+        while movement != [0.0, 0.0, 0.0, 0.0]:
             print "Target: {}".format(self.navigator.tar_gps)
             while (dist > thresh):
                 self.drone.move(*movement)
                 print "self.drone.move({})".format(movement)
                 time.sleep(1)
                 movement, dist = self.navigator.get_move()
-                if movement == [0.0, 0.0, 0.0, 0.0]: break
-            self.navigator.set_target(None)
-            try: self.navigator.set_target(self.navigator.waypoints.popleft())
-            except IndexError: self.navigator.set_target(None)
+            self.navigator.next_tar()
 
         self.drone.hover()
         self.drone.land()
