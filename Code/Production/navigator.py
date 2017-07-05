@@ -189,7 +189,7 @@ class Navigator:
         p = math.cos(x[0]) * math.sin(y[0])
         p -= math.sin(x[0]) * math.cos(y[0]) * math.cos(y[1] - x[1])
         b = math.atan2(q, p) * 180.0 / math.pi
-        return = (b + 270.0) % 360.0
+        return (b + 270.0) % 360.0
 
     def __calc_mag(self):
         """Rotates the drone to acquire mag data to use in normalization."""

@@ -47,7 +47,7 @@ class DCMainApp(object):
         self.button_text_bgrnd = "black"
         self.button_text_face = "Arial"
         self.button_text_size = 10
-        self.button_text_size2 = 12
+        self.button_text_size2 = 9
         self.button_text_style = "bold"
         self.sensor_color_back = "lightgrey"
         self.control_color_back = "lightslategrey"
@@ -123,12 +123,12 @@ class DCMainApp(object):
         cam_img = Image.fromarray(cam_img)
         cam_img = ImageTk.PhotoImage(cam_img)
         self.panel_cam = tk.Label(
-		self.cameraside,
+                self.cameraside,
                 width=self.cam_width,
                 height=self.cam_height,
                 image = cam_img,
-		bg='black')
-	self.panel_cam.cam_img = cam_img
+                bg='black')
+        self.panel_cam.cam_img = cam_img
         self.panel_cam.grid(
                 row=0, column=0,
                 columnspan=30, rowspan=30,
@@ -165,9 +165,10 @@ class DCMainApp(object):
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
-        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis"]
-        self.sensor_label_text = [" ", " ", " ", " "]
-        self.sensor_cols = [1,2,3,4]
+        self.sensor_label_text = []
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "headis", "gpsdis"]
+        for name in self.sensor_objs_names: self.sensor_label_text.append(" ")
+        self.sensor_cols = list(range(1,len(self.sensor_objs_names) + 1))
 
         for i in range(len(self.sensor_objs_names)):
             self.sensor_objs.append(tk.Label(
@@ -275,6 +276,7 @@ class DCMainApp(object):
         self.battstat()
         self.altstat()
         self.velstat()
+        self.headingstat()
         self.gpsstat()
         self.camstat()
 
@@ -285,9 +287,8 @@ class DCMainApp(object):
         else:
             self.sensor_objs[battdis].config(fg="purple")
 
-        self.sensor_objs[battdis].config(text="Battery: {}'%' State: {}".format(
-            self.drone.getBattery()[0],
-            self.drone.getBattery()[1]))
+        self.sensor_objs[battdis].config(text="bat: {}%".format(
+            self.drone.getBattery()[0]))
         self.root.after(1000, self.battstat)
 
     def camstat(self):
@@ -300,7 +301,7 @@ class DCMainApp(object):
 
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
-        altDisplay = "Altitude: {}".format(
+        altDisplay = "alt: {}".format(
                 Decimal(
                     self.navigator.get_nav()["alt"]
                     ).quantize(Decimal('0.001')))
@@ -309,21 +310,34 @@ class DCMainApp(object):
 
     def velstat(self):
         veldis = self.sensor_objs_names.index("veldis")
-    	velDisplay = "Velocity: {}".format(
+        velDisplay = "vel: {}".format(
                 Decimal(np.hypot(
                     self.navigator.get_nav()["vel"][0],
                     self.navigator.get_nav()["vel"][1])
                     ).quantize(Decimal('0.001')))
-    	self.sensor_objs[veldis].config(text=velDisplay)
-    	self.root.after(self.stat_refresh, self.velstat)
+        self.sensor_objs[veldis].config(text=velDisplay)
+        self.root.after(self.stat_refresh, self.velstat)
 
     def gpsstat(self):
         gpsdis = self.sensor_objs_names.index("gpsdis")
-        gpsDisplay = "Latitude: {}  Longitude: {}".format(
-                self.navigator.get_nav()["gps"][0],
-                self.navigator.get_nav()["gps"][1])
-    	self.sensor_objs[gpsdis].config(text=gpsDisplay)
-    	self.root.after(self.stat_refresh, self.gpsstat)
+        gpsDisplay = "lat: {}  lon: {}".format(
+                Decimal(
+                    self.navigator.get_nav()["gps"][0]
+                    ).quantize(Decimal('0.000001')),
+                Decimal(
+                    self.navigator.get_nav()["gps"][1]
+                    ).quantize(Decimal('0.000001')))
+        self.sensor_objs[gpsdis].config(text=gpsDisplay)
+        self.root.after(self.stat_refresh, self.gpsstat)
+
+    def headingstat(self):
+        headis = self.sensor_objs_names.index("headis")
+        heaDisplay = "hdg: {}".format(
+                Decimal(
+                    self.navigator.get_nav()["deg"]
+                    ).quantize(Decimal('0.01')))
+        self.sensor_objs[headis].config(text=heaDisplay)
+        self.root.after(self.stat_refresh, self.headingstat)
 
     def render_map(self):
         cent_mapx = (self.map_width/2) + 3
@@ -621,26 +635,24 @@ class DCMainApp(object):
         self.drone.land()
 
     def nav_waypoints(self):
-        thresh = 5.0
-        self.controller_manual.clear()
+        thresh = 2.0
         self.navigator.next_tar()
-        #movement, dist = self.navigator.get_move()
         movement, dist = self.navigator.get_move_no_rot()
         
         # Begin test
-        self.drone.takeoff()
-        time.sleep(1)
-        while dist != -1:
-            print "Target: {}".format(self.navigator.tar_gps)
-            while (dist > thresh):
+        if dist != -1:
+            self.controller_manual.clear()
+            self.drone.takeoff()
+            time.sleep(5)
+        while (dist != -1) and not self.controller_manual.is_set():
+            while (dist > thresh) and not self.controller_manual.is_set():
                 self.drone.move(*movement)
                 print "self.drone.move({})".format(movement)
-                time.sleep(1)
-                #movement, dist = self.navigator.get_move()
+                time.sleep(0.5)
                 movement, dist = self.navigator.get_move_no_rot()
             self.navigator.next_tar()
-            #movement, dist = self.navigator.get_move()
             movement, dist = self.navigator.get_move_no_rot()
+        self.controller_manual.set()
         self.drone.land()
         return True
 
