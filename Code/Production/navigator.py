@@ -23,7 +23,7 @@ class Navigator:
         self.__mag_acc = 6  # Points to record during calibration
         self.__samples = deque(maxlen = self.__SAMP_NUM) # Sample queue
         self.__targets = [] # Target list
-        self.__waypoints = deque() # Waypoint Queue
+        self.waypoints = deque() # Waypoint Queue
         self.__tar_gps = None # Next target's gps coordinate
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
@@ -150,13 +150,13 @@ class Navigator:
             for tar in self.__targets:
                 dist = self.__calc_distance(temp_start, tar)
                 if dist < shortest: shortest, start = dist, tar
-            self.__waypoints.append(start)
+            self.waypoints.append(start)
             self.__targets.remove(start)
             temp_start = start
 
     def __next_tar(self):
         """Pop the next coordinate from the queue to current target"""
-        try: self.__tar_gps = self.__waypoints.popleft()
+        try: self.__tar_gps = self.waypoints.popleft()
         except IndexError: self.__tar_gps = self.__home
 
     def __calc_distance(self, start, finish):
@@ -430,7 +430,7 @@ class Navigator:
                         self.new_tempvrtx = 0
                         break
             #TODO duplicated behavior consider for refactor
-            self.__waypoints = self.gen_waypnts_arr[:]
+            self.waypoints = self.gen_waypnts_arr[:]
             # Current position is the first point of the path
-            self.__tar_gps == self.__waypoints.pop(0)
+            self.__tar_gps == self.waypoints.pop(0)
         else: self.gen_waypnts_arr = []

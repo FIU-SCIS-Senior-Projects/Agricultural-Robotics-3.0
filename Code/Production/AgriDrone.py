@@ -4,6 +4,7 @@ import Tkinter as tk
 WIN_WIDTH = 880
 WIN_HEIGHT = 760
 
+
 def main():
     # Initialize GUI
     root = tk.Tk()
