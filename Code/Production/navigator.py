@@ -129,7 +129,7 @@ class Navigator:
         # Turn magnetometer data into heading (degrees)
         stats["mag"] = self.__drone.NavData["magneto"][0][:-1] # not using z value
         for i in range(len(stats["mag"])): stats["mag"][i] -= self.__mag_avg[i]
-        stats["deg"] = (360 + (-1 * (math.atan2(
+        stats["deg"] = (270 + (-1 * (math.atan2(
             stats["mag"][1], stats["mag"][0]) * 180) / math.pi)) % 360
 
         # Set new stats
@@ -140,7 +140,7 @@ class Navigator:
         # Current position is the first point of the path
         if self.__tar_gps == None:
             self.__set_stats()
-            start = self.__stats["gps"]
+            start = list(self.__stats["gps"])
         else: start = self.__tar_gps
         temp_start = start
 
@@ -156,8 +156,12 @@ class Navigator:
 
     def __next_tar(self):
         """Pop the next coordinate from the queue to current target"""
-        try: self.__tar_gps = self.__waypoints.popleft()
-        except IndexError: self.__tar_gps = self.__home
+        if self.tar_gps == self.__home or not self.waypoints:
+            self.tar_gps = None
+            return True
+        try: self.tar_gps = self.waypoints.popleft()
+        except IndexError: self.tar_gps = self.__home
+        return True
 
     def __calc_distance(self, start, finish):
         """Calculate distance to target"""
@@ -241,6 +245,24 @@ class Navigator:
 
         # Return movement list and distance to target
         return ([0.0, move_speed, 0.0, turn_speed], self.__tar_dist)
+
+    def get_move_no_rot(self):
+        """Like get_move(), but no rotation at all; used for single initial
+        heading reading"""
+        # If no target, no movement
+        if self.tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
+        self.__set_stats()
+
+        # Calculations for required heading and distance
+        self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
+                self.tar_gps)
+        self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
+                self.tar_gps)
+
+        # Begin movement toward target with fractions of full speed
+        move_fwd = math.cos(self.__tar_angle) * self.__DEF_SPD
+        move_lft = math.sin(self.__tar_angle) * self.__DEF_SPD
+        return ([move_lft, move_fwd, 0.0, 0.0], self.__tar_dist)
 
     def mod_waypoints(self, waypoints, reset = False, interrupt = False):
         """ waypoints: list of iterables, [0]:lat [1]:lon

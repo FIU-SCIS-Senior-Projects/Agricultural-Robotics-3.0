@@ -491,7 +491,7 @@ class DCMainApp(object):
 
     def d_forward(self):
         self.controller_manual.set()
-        #self.drone.moveForward()
+        self.drone.moveForward()
 
     def d_backward(self):
         self.controller_manual.set()
@@ -586,10 +586,10 @@ class DCMainApp(object):
         move_acc = [ 0.00,  0.15,  0.00,  0.00]
 
         # Begin test
-        #self.drone.takeoff()
+        self.drone.takeoff()
         time.sleep(3)
         start_time = time.time()
-        #self.drone.move(*move_acc)
+        self.drone.move(*move_acc)
         print "self.drone.move({})".format(move_acc)
 
         # TODO
@@ -612,7 +612,7 @@ class DCMainApp(object):
             else:                  move_acc[1]  =  move_def[1]
 
             # Perform movement
-            #self.drone.move(*move_acc)
+            self.drone.move(*move_acc)
             print "self.drone.move({})".format(move_acc)
             time.sleep(1)
 
@@ -621,7 +621,33 @@ class DCMainApp(object):
                 done = True
 
         # Finish with a land
-        #self.drone.land()
+        self.drone.land()
+
+    def nav_waypoints(self):
+        thresh = 5.0
+        self.controller_manual.clear()
+        self.navigator.next_tar()
+        #movement, dist = self.navigator.get_move()
+        movement, dist = self.navigator.get_move_no_rot()
+        
+        # Begin test
+        self.drone.takeoff()
+        time.sleep(1)
+        while dist != -1:
+            print "Target: {}".format(self.navigator.tar_gps)
+            while (dist > thresh):
+                self.drone.move(*movement)
+                print "self.drone.move({})".format(movement)
+                time.sleep(1)
+                #movement, dist = self.navigator.get_move()
+                movement, dist = self.navigator.get_move_no_rot()
+            self.navigator.next_tar()
+            #movement, dist = self.navigator.get_move()
+            movement, dist = self.navigator.get_move_no_rot()
+
+        self.drone.hover()
+        self.drone.land()
+        return True
 
     # flight buttons
     def d_smooth(self):
@@ -656,19 +682,11 @@ class DCMainApp(object):
 
     # drone connection button
     def d_connect(self):
-        gps_targets = [
-                [25.758536, -80.374548], # south ecs parking lot
-                [25.757582, -80.373888], # library entrance
-                [25.758633, -80.372067], # physics lecture
-                [25.759387, -80.376163], # roundabout
-        ]
-
         # Initialize drone and navigator objs
         self.drone = Drone()
         self.drone.startup()
         self.drone.reset()
         self.navigator = Navigator(self.drone)
-        self.navigator.mod_waypoints(gps_targets, reset=True)
         self.camera = Camera(
                 self.drone,
                 self.cam_width,
