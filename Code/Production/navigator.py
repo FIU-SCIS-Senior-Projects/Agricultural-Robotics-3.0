@@ -23,8 +23,8 @@ class Navigator:
         self.__mag_acc = 6  # Points to record during calibration
         self.__samples = deque(maxlen = self.__SAMP_NUM) # Sample queue
         self.__targets = [] # Target list
-        self.__waypoints = deque() # Waypoint Queue
-        self.__tar_gps = None # Next target's gps coordinate
+        self.waypoints = deque() # Waypoint Queue
+        self.tar_gps = None # Next target's gps coordinate
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
         self.__stats = {}   # Stats dict
@@ -46,7 +46,7 @@ class Navigator:
         # Get current GPS for "home" location
         print ">>> Obtaining Home coordinate"
         self.__set_stats()
-        self.__home = self.__stats["gps"]
+        self.__home = list(self.__stats["gps"])
 
         # Done initializing
         print ">>> NAVIGATOR READY"
@@ -102,7 +102,7 @@ class Navigator:
         diff = np.sum((points - median)**2, axis=-1)
         diff = np.sqrt(diff)
         med_abs_deviation = np.median(diff)
-        modified_z_score = 0.6745 * diff / med_abs_deviation
+        modified_z_score = 0.6745 * diff / (med_abs_deviation + 1e-10)
 
         return modified_z_score > thresh
 
@@ -138,10 +138,10 @@ class Navigator:
     def __calc_waypoints(self):
         """Takes target list, adds shortest route in order to waypoint queue"""
         # Current position is the first point of the path
-        if self.__tar_gps == None:
+        if self.tar_gps == None:
             self.__set_stats()
             start = list(self.__stats["gps"])
-        else: start = self.__tar_gps
+        else: start = self.tar_gps
         temp_start = start
 
         # Use NN to find shortest paths, queue targets as they're found
@@ -150,11 +150,11 @@ class Navigator:
             for tar in self.__targets:
                 dist = self.__calc_distance(temp_start, tar)
                 if dist < shortest: shortest, start = dist, tar
-            self.__waypoints.append(start)
+            self.waypoints.append(start)
             self.__targets.remove(start)
             temp_start = start
 
-    def __next_tar(self):
+    def next_tar(self):
         """Pop the next coordinate from the queue to current target"""
         if self.tar_gps == self.__home or not self.waypoints:
             self.tar_gps = None
@@ -189,7 +189,10 @@ class Navigator:
         p = math.cos(x[0]) * math.sin(y[0])
         p -= math.sin(x[0]) * math.cos(y[0]) * math.cos(y[1] - x[1])
         b = math.atan2(q, p) * 180.0 / math.pi
-        return (b + 360.0) % 360.0
+        #return (b + 360.0) % 360.0
+        jkl = (b + 270.0) % 360.0
+        print jkl
+        return jkl
 
     def __calc_mag(self):
         """Rotates the drone to acquire mag data to use in normalization."""
@@ -222,12 +225,14 @@ class Navigator:
 
     def get_move(self):
         """Perform calculations to get arguments for a drone move"""
-        if self.__tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], 0.0)
+        if self.tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
         self.__set_stats()
 
         # Get angle of required turn
-        self.__tar_angle = self.__calc_heading(self.__stats["gps"], self.__tar_gps)
-        self.__tar_dist = self.__calc_distance(self.__stats["gps"], self.__tar_gps)
+        self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
+                self.tar_gps)
+        self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
+                self.tar_gps)
         angle_diff = self.__drone.angleDiff(
                 self.__stats["deg"], self.__tar_angle)
 
@@ -276,8 +281,8 @@ class Navigator:
             Setting "interrupt" to True will clear the current
             target, forcing a recalculation of next target.
         """
-        if reset: del self.__targets[:]
-        if interrupt: self.__tar_gps = None
+        if reset: del self.waypoints[:]
+        if interrupt: self.tar_gps = None
         for waypoint in waypoints: self.__targets.append(waypoint)
         self.__calc_waypoints()
 
@@ -295,8 +300,8 @@ class Navigator:
         """If the drone is already moving toward a target,
            move current target to waypoint queue and move
            to new target. """
-        old_target = self.__tar_gps
-        self.__tar_gps = new_target
+        old_target = self.tar_gps
+        self.tar_gps = new_target
         if old_target != None:
             self.mod_waypoints([old_target])
 
@@ -452,7 +457,7 @@ class Navigator:
                         self.new_tempvrtx = 0
                         break
             #TODO duplicated behavior consider for refactor
-            self.__waypoints = self.gen_waypnts_arr[:]
+            self.waypoints = self.gen_waypnts_arr[:]
             # Current position is the first point of the path
-            self.__tar_gps == self.__waypoints.pop(0)
+            self.tar_gps == self.waypoints.pop(0)
         else: self.gen_waypnts_arr = []

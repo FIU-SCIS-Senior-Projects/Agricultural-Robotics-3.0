@@ -57,7 +57,7 @@ class DCMainApp(object):
         self.stat_refresh = 200 # ms
 
         self.map_image   = Image.open("staticmap_road.png")# updated variables
-        self.drone_image = Image.open("droneimg_2_0.gif")
+        self.drone_image = Image.open("AR3_0drone.gif")
         self.drone_loc   = Image.open("drone_mrkr.gif")
         self.bound_err   = Image.open("o_o_ran.gif")
         # Static map image display resolution is 640 x 400 with zoom level 19.
@@ -453,9 +453,6 @@ class DCMainApp(object):
         elif(self.rte_selctn_var.get() == 2):
             self.maparea.bind("<Button-1>",self.roi_rect_rte)
 
-    def lnch_route(self):
-        print ">>>Drone Beginning Route"
-
     def clear_slctns(self):
         self.clk_pix_x = ''
         self.clk_pix_y = ''
@@ -644,12 +641,16 @@ class DCMainApp(object):
             self.navigator.next_tar()
             #movement, dist = self.navigator.get_move()
             movement, dist = self.navigator.get_move_no_rot()
-
-        self.drone.hover()
         self.drone.land()
         return True
 
     # flight buttons
+    def lnch_route(self):
+        print ">>>Drone Beginning Route"
+        moving = Thread(target=self.nav_waypoints, args=())
+        moving.daemon = True
+        moving.start()
+
     def d_smooth(self):
         moving = Thread(target=self.smooth, args=())
         moving.daemon = True
