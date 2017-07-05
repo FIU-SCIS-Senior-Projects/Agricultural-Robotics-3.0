@@ -10,9 +10,6 @@ from decimal import Decimal
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 
-WIN_WIDTH = 880
-WIN_HEIGHT = 760
-
 '''
 D.F.C.-Drone Flight Controller:
 
@@ -37,10 +34,10 @@ except ImportError:
         from queue import Queue, Empty  #python 3 support
 
 class DCMainApp(object):
-    def __init__(self,root):
+    def __init__(self,root,width,height):
         # Modifiable Constants
-        self.win_height = WIN_HEIGHT
-        self.win_width  = WIN_WIDTH
+        self.win_height = height
+        self.win_width  = width
         self.map_width  = 640
         self.map_height = 400
         self.cam_width  = 640
@@ -692,16 +689,3 @@ class DCMainApp(object):
     def d_test(self):
         self.d_smooth()
 
-def main():
-    # Initialize GUI
-    root = tk.Tk()
-    root.geometry("{}x{}".format(WIN_WIDTH, WIN_HEIGHT)) #GUI window dimensions
-    drone_GUI = DCMainApp(root)
-    #root.protocol("WM_DELETE_WINDOW", drone_GUI.quit)
-
-    # Run GUI
-    root.mainloop()
-
-
-if __name__ == "__main__":
-    main()
