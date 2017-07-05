@@ -57,7 +57,7 @@ class DCMainApp(object):
         self.stat_refresh = 200 # ms
 
         self.map_image   = Image.open("staticmap_road.png")# updated variables
-        self.drone_image = Image.open("droneimg_2_0.gif")
+        self.drone_image = Image.open("AR3_0drone.gif")
         self.drone_loc   = Image.open("drone_mrkr.gif")
         self.bound_err   = Image.open("o_o_ran.gif")
         # Static map image display resolution is 640 x 400 with zoom level 19.
@@ -361,6 +361,25 @@ class DCMainApp(object):
         self.mrkr_list.append(self.map_mrkrs)
         self.waypoints = []
 
+    def rend_wypnt_path(self):
+        print self.navigator.waypoints
+        curr_px = ((self.navigator.get_nav()["gps"][1] - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
+        curr_py = ((self.navigator.get_nav()["gps"][0] - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
+        for path in range(len(self.navigator.waypoints)):
+            new_px = ((self.navigator.waypoints[path][1] - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
+            new_py = ((self.navigator.waypoints[path][0]  - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
+
+            if(curr_px != new_px and curr_py != new_py and self.navigator.waypoints[path-1]):
+                self.line = self.maparea.create_line(curr_px
+                                    ,curr_py
+                                    ,new_px
+                                    ,new_py
+                                    ,fill='green'
+                                    ,width=2)
+                curr_px = new_px
+                curr_py = new_py
+                self.rect_line.append(self.line)
+
     def rend_rect_mrkrs(self):
         self.vrtx_x0_0   = self.clk_arr[0][0]
         self.vrtx_y0_0   = self.clk_arr[0][1]
@@ -404,7 +423,7 @@ class DCMainApp(object):
                                                           ,state=NORMAL) # Draw marker
                 self.mrkr_list.append(self.map_mrkrs)
                 self.rect_line.append(self.line)
-                self.rend_rect_path()
+                #self.rend_rect_path()
 
     def rend_rect_path(self):
         # Local variables
@@ -622,7 +641,13 @@ class DCMainApp(object):
             self.maparea.bind("<Button-1>",self.roi_rect_rte)
 
     def lnch_route(self):
-        print ">>>Drone Beginning Route"
+        if(self.rte_selctn_var.get() == 1):
+            print ">>> Map Drone Waypoints Route"
+            self.rend_wypnt_path()
+        elif(self.rte_selctn_var.get()==2):
+            print ">>> Map Drone ROI Route"
+            self.rend_rect_path()
+        print ">>> Drone Beginning Route"
 
     def clear_slctns(self):
         self.clk_pix_x = ''
@@ -641,9 +666,12 @@ class DCMainApp(object):
         self.rect_line = []
         for path in range(len(self.rect_path_line)):
             self.maparea.delete(self.rect_path_line[path])
+        for obj in range(len(self.navigator.waypoints)):
+            self.navigator.waypoints.pop()
 
         self.gps_vrtcs = []
         self.navigator.gen_waypnts(self.gps_vrtcs)
+
         print ">>>Route removed"
 
 
@@ -829,19 +857,19 @@ class DCMainApp(object):
 
     # drone connection button
     def d_connect(self):
-        gps_targets = [
+        '''gps_targets = [
                 [25.758536, -80.374548], # south ecs parking lot
                 [25.757582, -80.373888], # library entrance
                 [25.758633, -80.372067], # physics lecture
                 [25.759387, -80.376163], # roundabout
-        ]
+        ]'''
 
         # Initialize drone and navigator objs
         self.drone = Drone()
         self.drone.startup()
         self.drone.reset()
         self.navigator = Navigator(self.drone)
-        self.navigator.mod_waypoints(gps_targets, reset=True)
+        #self.navigator.mod_waypoints(gps_targets, reset=True)
         self.camera = Camera(
                 self.drone,
                 self.cam_width,
