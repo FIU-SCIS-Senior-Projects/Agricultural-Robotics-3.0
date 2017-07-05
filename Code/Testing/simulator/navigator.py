@@ -169,7 +169,6 @@ class Navigator:
         """Calculate distance to target"""
         r = 6371e3  # earth's radius in m
         x, y = start, finish
-        print ("start: {}\nfinish: {}\n".format(x, y))
 
         # Convert GPS degrees to radians
         phi1 = math.radians(x[0])
@@ -251,6 +250,25 @@ class Navigator:
 
         # Return movement list and distance to target
         return ([0.0, move_speed, 0.0, turn_speed], self.__tar_dist)
+
+    def get_move_no_rot(self):
+        """Like get_move(), but no rotation at all; used for single initial
+        heading reading"""
+        # If no target, no movement
+        if self.tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
+        self.__set_stats()
+
+        # Calculations for required heading and distance
+        self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
+                self.tar_gps)
+        self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
+                self.tar_gps)
+
+        # Begin movement toward target with fractions of full speed
+        move_fwd = math.cos(self.__tar_angle) * self.__DEF_SPD
+        move_lft = math.sin(self.__tar_angle) * self.__DEF_SPD
+        return ([move_lft, move_fwd, 0.0, 0.0], self.__tar_dist)
+
 
     def mod_waypoints(self, waypoints, reset = False, interrupt = False):
         """ waypoints: list of iterables, [0]:lat [1]:lon
