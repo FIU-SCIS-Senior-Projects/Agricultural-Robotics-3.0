@@ -627,10 +627,11 @@ class DCMainApp(object):
         self.drone.land()
 
     def nav_waypoints(self):
-        thresh = 3.0
+        thresh = 5.0
         self.controller_manual.clear()
         self.navigator.next_tar()
-        movement, dist = self.navigator.get_move()
+        #movement, dist = self.navigator.get_move()
+        movement, dist = self.navigator.get_move_no_rot()
         
         # Begin test
         self.drone.takeoff()
@@ -641,9 +642,11 @@ class DCMainApp(object):
                 self.drone.move(*movement)
                 print "self.drone.move({})".format(movement)
                 time.sleep(1)
-                movement, dist = self.navigator.get_move()
+                #movement, dist = self.navigator.get_move()
+                movement, dist = self.navigator.get_move_no_rot()
             self.navigator.next_tar()
-            movement, dist = self.navigator.get_move()
+            #movement, dist = self.navigator.get_move()
+            movement, dist = self.navigator.get_move_no_rot()
 
         self.drone.hover()
         self.drone.land()
