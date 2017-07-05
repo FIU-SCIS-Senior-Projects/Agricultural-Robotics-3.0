@@ -46,7 +46,7 @@ class Navigator:
         # Get current GPS for "home" location
         print ">>> Obtaining Home coordinate"
         self.__set_stats()
-        self.__home = self.__stats["gps"]
+        self.__home = list(self.__stats["gps"])
 
         # Done initializing
         print ">>> NAVIGATOR READY"
@@ -142,7 +142,7 @@ class Navigator:
         # Current position is the first point of the path
         if self.tar_gps == None:
             self.__set_stats()
-            start = self.__stats["gps"]
+            start = list(self.__stats["gps"])
         else: start = self.tar_gps
         temp_start = start
 
@@ -169,6 +169,7 @@ class Navigator:
         """Calculate distance to target"""
         r = 6371e3  # earth's radius in m
         x, y = start, finish
+        print ("start: {}\nfinish: {}\n".format(x, y))
 
         # Convert GPS degrees to radians
         phi1 = math.radians(x[0])
@@ -225,13 +226,13 @@ class Navigator:
 
     def get_move(self):
         """Perform calculations to get arguments for a drone move"""
-        if self.tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], 0.0)
+        if self.tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
         self.__set_stats()
 
         # Get angle of required turn
-        self.__tar_angle = self.__calc_heading(self.__stats["gps"],
+        self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
                 self.tar_gps)
-        self.__tar_dist = self.__calc_distance(self.__stats["gps"],
+        self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
                 self.tar_gps)
         angle_diff = self.__drone.angleDiff(
                 self.__stats["deg"], self.__tar_angle)
@@ -263,7 +264,7 @@ class Navigator:
             Setting "interrupt" to True will clear the current
             target, forcing a recalculation of next target.
         """
-        if reset: del self.__targets[:]
+        if reset: del self.__waypoints[:]
         if interrupt: self.tar_gps = None
         for waypoint in waypoints: self.__targets.append(waypoint)
         self.__calc_waypoints()
