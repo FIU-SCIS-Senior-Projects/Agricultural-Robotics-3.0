@@ -129,7 +129,7 @@ class Navigator:
         # Turn magnetometer data into heading (degrees)
         stats["mag"] = self.__drone.NavData["magneto"][0][:-1] # not using z value
         for i in range(len(stats["mag"])): stats["mag"][i] -= self.__mag_avg[i]
-        stats["deg"] = (270 + (-1 * (math.atan2(
+        stats["deg"] = (360 + (-1 * (math.atan2(
             stats["mag"][1], stats["mag"][0]) * 180) / math.pi)) % 360
 
         # Set new stats
@@ -189,10 +189,7 @@ class Navigator:
         p = math.cos(x[0]) * math.sin(y[0])
         p -= math.sin(x[0]) * math.cos(y[0]) * math.cos(y[1] - x[1])
         b = math.atan2(q, p) * 180.0 / math.pi
-        #return (b + 360.0) % 360.0
-        jkl = (b + 270.0) % 360.0
-        print jkl
-        return jkl
+        return = (b + 270.0) % 360.0
 
     def __calc_mag(self):
         """Rotates the drone to acquire mag data to use in normalization."""
