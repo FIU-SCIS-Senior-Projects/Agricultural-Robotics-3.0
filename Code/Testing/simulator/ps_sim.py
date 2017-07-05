@@ -34,6 +34,10 @@ class Drone(object):
         # still event - called to close position updater
         self.__still = Event()
 
+        # navlock - isolates reads and writes to navdata
+        self.__navlock = Event()
+        self.__navlock.set()
+
         # position over time thread
         self.__still.set()
         self.__movement = Thread(
@@ -59,26 +63,28 @@ class Drone(object):
     def __pos_update(self):
         print ">>> Position Updater Begun"
         while not self.__shutdown.is_set():
-            if not self.__still.is_set():
-                hdg = radians(self.NavData["magneto"][0])
-                rot = np.matrix([
-                        [ cos(hdg), sin(hdg), 0.0],
-                        [-sin(hdg), cos(hdg), 0.0],
-                        [      0.0,      0.0, 1.0]])
-                dz  = self.__speeds[2] * self.__nav_update_spd
-                dt = self.__speeds[3] * self.__nav_update_spd
-                mov = np.matrix([
-                    [self.__speeds[1] * self.__nav_update_spd],
-                    [self.__speeds[0] * self.__nav_update_spd],
-                    [                                      dt]])
-                dxy = rot * mov
+            hdg = radians(self.NavData["magneto"][0])
+            rot = np.matrix([
+                    [ cos(hdg), sin(hdg), 0.0],
+                    [-sin(hdg), cos(hdg), 0.0],
+                    [      0.0,      0.0, 1.0]])
+            dz  = self.__speeds[2] * self.__nav_update_spd
+            dt = self.__speeds[3] * self.__nav_update_spd
+            mov = np.matrix([
+                [self.__speeds[1] * self.__nav_update_spd],
+                [self.__speeds[0] * self.__nav_update_spd],
+                [                                      dt]])
+            dxy = rot * mov
+
+            if not self.__still.is_set() and self.__navlock.wait(self.__nav_update_spd):
+                self.__navlock.clear()
                 
                 # adjusting altitude
                 self.NavData["altitude"][0] += dz * 1000
 
                 # adjusting heading
                 currMag = self.NavData["magneto"][0]
-                self.NavData["magneto"][0] = ((dt * 100) + currMag + 360) % 360
+                self.NavData["magneto"][0] = ((dt * 50) + currMag + 360) % 360
 
                 # adjusting latitude
                 self.NavData["gps"][0] += float(dxy[1] / 111132)
@@ -86,7 +92,18 @@ class Drone(object):
                 # adjusting longitude
                 self.NavData["gps"][1] += float(dxy[0] / 111132)
 
+                # wake up waiting threads
+                self.__navlock.set()
+                time.sleep(self.__nav_update_spd)
+
             time.sleep(self.__nav_update_spd)
+
+    def __get_nav(self):
+        self.__navlock.wait()
+        self.__navlock.clear()
+        nav = self.NavData
+        self.__navlock.set()
+        return nav
 
     def hover(self):
         if self.__curr_status == self.__status[0]: return False
@@ -98,7 +115,7 @@ class Drone(object):
     def takeoff(self):
         if self.__curr_status != self.__status[0]: return False
         self.__curr_status = self.__status[2]
-        while self.NavData["altitude"][0] < 0.5:
+        while self.__get_nav()["altitude"][0] < 0.5:
             self.moveUp()
             time.sleep(self.__nav_update_spd)
         self.hover()
@@ -106,9 +123,10 @@ class Drone(object):
 
     def land(self):
         if self.__curr_status == self.__status[0]: return False
-        while self.NavData["altitude"][0] > 0:
+        while self.__get_nav()["altitude"][0] > 0:
             self.moveDown()
             time.sleep(self.__nav_update_spd)
+        self.hover()
         self.__curr_status = self.__status[0]
         return True
 
