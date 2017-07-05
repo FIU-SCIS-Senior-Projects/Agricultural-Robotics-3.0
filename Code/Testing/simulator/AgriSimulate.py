@@ -356,10 +356,8 @@ class DCMainApp(object):
         self.getlat =  ((self.clk_pix_y * (self.MAXLAT - self.MINLAT))/(self.map_height-0)) + self.MINLAT
         self.getlong = ((self.clk_pix_x * (self.MAXLONG - self.MINLONG))/(self.map_width-0)) + self.MINLONG
 
-        self.waypoints.append([self.getlat,self.getlong])
-        self.navigator.mod_waypoints(self.waypoints)
+        self.navigator.mod_waypoints([[self.getlat, self.getlong]])
         self.mrkr_list.append(self.map_mrkrs)
-        self.waypoints = []
 
     def rend_rect_mrkrs(self):
             self.vrtx_pair0 = self.clk_arr[0]
@@ -637,7 +635,7 @@ class DCMainApp(object):
         # Begin test
         self.drone.takeoff()
         time.sleep(1)
-        while movement != [0.0, 0.0, 0.0, 0.0]:
+        while dist != -1:
             print "Target: {}".format(self.navigator.tar_gps)
             while (dist > thresh):
                 self.drone.move(*movement)
@@ -645,6 +643,7 @@ class DCMainApp(object):
                 time.sleep(1)
                 movement, dist = self.navigator.get_move()
             self.navigator.next_tar()
+            movement, dist = self.navigator.get_move()
 
         self.drone.hover()
         self.drone.land()
@@ -688,19 +687,19 @@ class DCMainApp(object):
 
     # drone connection button
     def d_connect(self):
-        gps_targets = [
-                [25.758536, -80.374548], # south ecs parking lot
-                [25.757582, -80.373888], # library entrance
-                [25.758633, -80.372067], # physics lecture
-                [25.759387, -80.376163], # roundabout
-        ]
+        #gps_targets = [
+        #        [25.758536, -80.374548], # south ecs parking lot
+        #        [25.757582, -80.373888], # library entrance
+        #        [25.758633, -80.372067], # physics lecture
+        #        [25.759387, -80.376163], # roundabout
+        #]
 
         # Initialize drone and navigator objs
         self.drone = Drone()
         self.drone.startup()
         self.drone.reset()
         self.navigator = Navigator(self.drone)
-        self.navigator.mod_waypoints(gps_targets, reset=True)
+        #self.navigator.mod_waypoints(gps_targets, reset=True)
         #self.camera = Camera(
         #        self.drone,
         #        self.cam_width,
