@@ -28,6 +28,7 @@ class Navigator:
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
         self.__stats = {}   # Stats dict
+        self.stus = []
 
         # Initialize sensor data transmissions
         print ">>> Initializing NavData"
@@ -66,6 +67,10 @@ class Navigator:
         pry, mfu, out = [], [], []
         stat_names = ["vel", "acc", "gyr", "gps", "alt", "mag", "deg", "pry", "mfu"]
         stat_lists = [ vel,   acc,   gyr,   gps,   alt,   mag,   deg ,  pry ,  mfu ]
+
+        if(not self.__drone.NavData["demo"][0][2] and not self.__drone.NavData["demo"][0][3]): self.stus = "HOVERING"
+        elif(not self.__drone.NavData["demo"][0][2] and not self.__drone.NavData["demo"][0][4]): self.stus = "FLYING"
+        elif(not self.__drone.NavData["demo"][0][3] and not self.__drone.NavData["demo"][0][4]): self.stus = "LANDED"
 
         # Build lists to be analyzed
         for item in list(self.__samples):
