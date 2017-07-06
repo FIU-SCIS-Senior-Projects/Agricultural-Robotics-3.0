@@ -72,15 +72,6 @@ class Navigator:
             for i in range(len(stat_names)):
                 stat_lists[i].append(item[stat_names[i]])
 
-        # Remove outliers
-        for stat in stat_lists:
-            out.append(list(itertools.compress(
-                stat, self.__is_outlier(np.array(stat)))))
-
-        # Check that lists are populated
-        for i in range(len(stat_lists)):
-            if out[i]: stat_lists[i] = out[i]
-
         # Average the remainder of the lists
         for i in range(len(stat_lists)):
             try:
@@ -89,23 +80,7 @@ class Navigator:
                         ) / len(stat_lists[i])
             except TypeError:
                 self.__stats[stat_names[i]] = float('nan')
-
-    def __is_outlier(self, points, thresh=3.5):
-        """
-            Boris Iglewicz and David Hoaglin (1993), "Volume 16: How to Detect and
-            Handle Outliers", The ASQC Basic References in Quality Control:
-            Statistical Techniques, Edward F. Mykytka, Ph.D., Editor.
-        """
-        if len(points.shape) == 1:
-            points = points[:,None]
-        median = np.median(points, axis=0)
-        diff = np.sum((points - median)**2, axis=-1)
-        diff = np.sqrt(diff)
-        med_abs_deviation = np.median(diff)
-        modified_z_score = 0.6745 * diff / (med_abs_deviation + 1e-10)
-
-        return modified_z_score > thresh
-
+        
     def __get_stats(self):
         """Get stats list with human-readable sensor data."""
         stats = {}
@@ -265,6 +240,13 @@ class Navigator:
         move_fwd = math.cos(self.__tar_angle) * self.__DEF_SPD
         move_lft = math.sin(self.__tar_angle) * self.__DEF_SPD
         return ([move_lft, move_fwd, 0.0, 0.0], self.__tar_dist)
+
+    def set_heading(self, heading):
+        """Turns the drone to target heading"""
+        samples = np.array()
+        for i in range(5):
+            samples.append(self.get_nav()["deg"])
+            time.sleep(1)
 
     def mod_waypoints(self, waypoints, reset = False, interrupt = False):
         """ waypoints: list of iterables, [0]:lat [1]:lon
