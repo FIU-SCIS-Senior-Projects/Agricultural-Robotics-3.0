@@ -91,8 +91,8 @@ class Navigator:
             except TypeError:
                 self.__stats[stat_names[i]] = float('nan')
 
-        # Convert heading to degrees
-        self.__stats["deg"] = ((self.__stats["deg"] * 180 / math.pi) + 360) % 360
+        # Convert heading from radians w/ 0 as East to degrees w/ 0 as North
+        self.__stats["deg"] = ((-self.__stats["deg"] * 180 / math.pi) + 450) % 360
 
     def __not_outlier(self, points, thresh=3.5):
         """
@@ -141,10 +141,10 @@ class Navigator:
     def __calc_waypoints(self):
         """Takes target list, adds shortest route in order to waypoint queue"""
         # Current position is the first point of the path
-        if self.tar_gps == None:
+        if self.__tar_gps == None:
             self.__set_stats()
             start = list(self.__stats["gps"])
-        else: start = self.tar_gps
+        else: start = self.__tar_gps
         temp_start = start
 
         # Use NN to find shortest paths, queue targets as they're found
@@ -159,11 +159,11 @@ class Navigator:
 
     def next_tar(self):
         """Pop the next coordinate from the queue to current target"""
-        if self.tar_gps == self.__home or not self.waypoints:
-            self.tar_gps = None
+        if self.__tar_gps == self.__home or not self.waypoints:
+            self.__tar_gps = None
             return True
-        try: self.tar_gps = self.waypoints.popleft()
-        except IndexError: self.tar_gps = self.__home
+        try: self.__tar_gps = self.waypoints.popleft()
+        except IndexError: self.__tar_gps = self.__home
         return True
 
     def __calc_distance(self, start, finish):
@@ -192,7 +192,7 @@ class Navigator:
         p = math.cos(x[0]) * math.sin(y[0])
         p -= math.sin(x[0]) * math.cos(y[0]) * math.cos(y[1] - x[1])
         b = math.atan2(q, p) * 180.0 / math.pi
-        return (b + 270.0) % 360.0
+        return (b + 360.0) % 360.0
 
     def __calc_mag(self):
         """Rotates the drone to acquire mag data to use in normalization."""
@@ -225,14 +225,14 @@ class Navigator:
 
     def get_move(self):
         """Perform calculations to get arguments for a drone move"""
-        if self.tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
+        if self.__tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
         self.__set_stats()
 
         # Get angle of required turn
         self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
-                self.tar_gps)
+                self.__tar_gps)
         self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
-                self.tar_gps)
+                self.__tar_gps)
         angle_diff = self.__drone.angleDiff(
                 self.__stats["deg"], self.__tar_angle)
 
@@ -255,18 +255,23 @@ class Navigator:
         """Like get_move(), but no rotation at all; used for single initial
         heading reading"""
         # If no target, no movement
-        if self.tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
+        if self.__tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
         self.__set_stats()
 
         # Calculations for required heading and distance
-        self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
-                self.tar_gps)
-        self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
-                self.tar_gps)
+        #self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
+        #        self.__tar_gps)
+        #self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
+        #        self.__tar_gps)
+        self.__tar_angle = self.__calc_heading([25.759027,-80.374598], self.__tar_gps)
+        self.__tar_dist = self.__calc_distance([25.759027,-80.374598], self.__tar_gps)
 
+        print self.__tar_angle
         # Begin movement toward target with fractions of full speed
-        move_fwd = math.cos(self.__tar_angle) * self.__DEF_SPD
-        move_lft = math.sin(self.__tar_angle) * self.__DEF_SPD
+        #move_fwd = math.cos(self.__tar_angle) * self.__DEF_SPD
+        #move_lft = math.sin(self.__tar_angle) * self.__DEF_SPD
+        move_lft = math.sin(np.radians(self.__tar_angle)) * self.__DEF_SPD
+        move_fwd = math.cos(np.radians(self.__tar_angle)) * self.__DEF_SPD
         return ([move_lft, move_fwd, 0.0, 0.0], self.__tar_dist)
 
     def set_heading(self, heading):
@@ -289,7 +294,7 @@ class Navigator:
             target, forcing a recalculation of next target.
         """
         if reset: del self.waypoints[:]
-        if interrupt: self.tar_gps = None
+        if interrupt: self.__tar_gps = None
         for waypoint in waypoints: self.__targets.append(waypoint)
         self.__calc_waypoints()
 
@@ -300,6 +305,9 @@ class Navigator:
     def get_home(self):
         return self.__home
 
+    def set_curr(self, new_curr):
+        self.__stats["gps"] = new_curr
+
     def set_home(self, new_home):
         self.__home = new_home
 
@@ -307,8 +315,8 @@ class Navigator:
         """If the drone is already moving toward a target,
            move current target to waypoint queue and move
            to new target. """
-        old_target = self.tar_gps
-        self.tar_gps = new_target
+        old_target = self.__tar_gps
+        self.__tar_gps = new_target
         if old_target != None:
             self.mod_waypoints([old_target])
 
