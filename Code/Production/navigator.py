@@ -259,17 +259,13 @@ class Navigator:
         self.__set_stats()
 
         # Calculations for required heading and distance
-        #self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
-        #        self.__tar_gps)
-        #self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
-        #        self.__tar_gps)
-        self.__tar_angle = self.__calc_heading([25.759027,-80.374598], self.__tar_gps)
-        self.__tar_dist = self.__calc_distance([25.759027,-80.374598], self.__tar_gps)
+        self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
+                self.__tar_gps)
+        self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
+                self.__tar_gps)
 
         print self.__tar_angle
         # Begin movement toward target with fractions of full speed
-        #move_fwd = math.cos(self.__tar_angle) * self.__DEF_SPD
-        #move_lft = math.sin(self.__tar_angle) * self.__DEF_SPD
         move_lft = math.sin(np.radians(self.__tar_angle)) * self.__DEF_SPD
         move_fwd = math.cos(np.radians(self.__tar_angle)) * self.__DEF_SPD
         return ([move_lft, move_fwd, 0.0, 0.0], self.__tar_dist)
