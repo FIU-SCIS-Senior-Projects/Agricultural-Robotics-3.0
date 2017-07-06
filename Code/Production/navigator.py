@@ -25,7 +25,7 @@ class Navigator:
         self.__samples = deque(maxlen = self.__SAMP_NUM) # Sample queue
         self.__targets = [] # Target list
         self.waypoints = deque() # Waypoint Queue
-        self.tar_gps = None # Next target's gps coordinate
+        self.__tar_gps = None # Next target's gps coordinate
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
         self.__stats = {}   # Stats dict
@@ -466,5 +466,5 @@ class Navigator:
             #TODO duplicated behavior consider for refactor
             self.waypoints = self.gen_waypnts_arr[:]
             # Current position is the first point of the path
-            self.tar_gps == self.waypoints.pop(0)
+            self.__tar_gps == self.waypoints.pop(0)
         else: self.gen_waypnts_arr = []
