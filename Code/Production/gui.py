@@ -43,16 +43,12 @@ class DCMainApp(object):
         # Future maps may be stored as a database of 640 x 400, zoom 19, map tiles
         # which the drone user may select.
         # Internal storage of map tiles will discard need for an active internet connection.
-        self.LAT     = 25.759027         #Center latitude of staticmap image
-        self.LONG    = -80.374598        #Center longitude of staticmap image
-        self.MINLAT  = 25.759510         #Upper bound staticmap image latitude
-        self.MINLONG = -80.375419        #Lower bound staticmap image longitude
-        self.MAXLAT  = 25.758544         #Lower bound staticmap image latitude
-        self.MAXLONG = -80.373815        #Upper bound staticmap image longitude
-
-        # Pixel width calculation dx and dy
-        self.pix_dx = abs(-80.374598 - -80.375381)/ abs(320 - 0)
-        self.pix_dy = abs(25.759027 - 25.759510)/abs(200 - 0)
+        self.LAT    =  25.759027    #Center latitude of staticmap image
+        self.LON    = -80.374598    #Center longitude of staticmap image
+        self.MINLAT =  25.759510    #Upper bound staticmap image latitude
+        self.MINLON = -80.375419    #Lower bound staticmap image longitude
+        self.MAXLAT =  25.758544    #Lower bound staticmap image latitude
+        self.MAXLON = -80.373815    #Upper bound staticmap image longitude
 
         # Pixel map click function
         self.clk_arr = []
@@ -292,7 +288,7 @@ class DCMainApp(object):
 
     def stastat(self):
         stadis = self.sensor_objs_names.index("stadis")
-        staDisplay = "{}".format(self.navigator.stus)
+        staDisplay = "{}".format(self.get_nav()["stus"])
     	self.sensor_objs[stadis].config(text=staDisplay)
     	self.root.after(self.stat_refresh, self.stastat)
 
