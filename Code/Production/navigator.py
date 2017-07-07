@@ -29,7 +29,6 @@ class Navigator:
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
         self.__stats = {}   # Stats dict
-        self.stus = []
 
         # Initialize sensor data transmissions
         print ">>> Initializing NavData"
@@ -69,10 +68,6 @@ class Navigator:
         stat_names = ["vel", "acc", "gyr", "gps", "alt", "mag", "deg", "pry", "mfu"]
         stat_lists = [ vel,   acc,   gyr,   gps,   alt,   mag,   deg ,  pry ,  mfu ]
 
-        if(not self.__drone.NavData["demo"][0][2] and not self.__drone.NavData["demo"][0][3]): self.stus = "HOVERING"
-        elif(not self.__drone.NavData["demo"][0][2] and not self.__drone.NavData["demo"][0][4]): self.stus = "FLYING"
-        elif(not self.__drone.NavData["demo"][0][3] and not self.__drone.NavData["demo"][0][4]): self.stus = "LANDED"
-
         # Build lists to be analyzed
         for item in list(self.__samples):
             for i in range(len(stat_names)):
@@ -98,6 +93,15 @@ class Navigator:
 
         # Convert heading from radians w/ 0 as East to degrees w/ 0 as North
         self.__stats["deg"] = ((-self.__stats["deg"] * 180 / math.pi) + 450) % 360
+
+        # Flight status
+        h_bit = not self.__drone.NavData["demo"][0][2]
+        f_bit = not self.__drone.NavData["demo"][0][3]
+        l_bit = not self.__drone.NavData["demo"][0][4]
+        if h_bit and f_bit: stus = "HOVERING"
+        elif h_bit and l_bit: stus = "FLYING"
+        elif f_bit and l_bit: stus = "LANDED"
+        self.__stats["stus"] = stus
 
     def __not_outlier(self, points, thresh=3.5):
         """
