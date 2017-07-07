@@ -341,10 +341,11 @@ class DCMainApp(object):
                 state=tk.NORMAL)
         self.root.after(900, self.act_drone_loc)
 
-    def rend_mrkrs(self, x, y):
-        self.map_mrkrs = self.maparea.create_image(x, y - 14
-                                                                 ,image=self.map_drone_mrkr
-                                                                 , state=tk.NORMAL) # Draw marker
+    def rend_mrkr(self, x, y):
+        self.map_mrkrs = self.maparea.create_image(
+                x, y - 14,
+                image=self.map_drone_mrkr,
+                state=tk.NORMAL) # Draw marker
 
         self.getlong, self.getlat = self.get_l(x, y)
         self.navigator.mod_waypoints([[self.getlat, self.getlong]])
@@ -364,56 +365,52 @@ class DCMainApp(object):
             self.lines.append(line)
             curr_px, curr_py = next_px, next_py
 
-    def rend_rect_mrkrs(self):
-        self.vrtx_x0_0   = self.clk_arr[0][0]
-        self.vrtx_y0_0   = self.clk_arr[0][1]
-        self.vrtx_x1_0   = self.clk_arr[1][0]
-        self.vrtx_y1_0   = self.clk_arr[1][1]
-        # set remaining vertices for ROI list
-        self.vrtx_x0_1   = self.clk_arr[1][0]
-        self.vrtx_y0_1   = self.clk_arr[0][1]
-        self.vrtx_x1_1   = self.clk_arr[0][0]
-        self.vrtx_y1_1   = self.clk_arr[1][1]
+    def select_rte(self,event):
+        mode = self.rte_selctn_var.get()
+        x = event.x                # Recent event variables
+        y = event.y
+        self.getlong, self.getlat = self.get_l(x, y)
 
-        self.testarr.append([self.vrtx_x0_0,self.vrtx_y0_0])
-        self.testarr.append([self.vrtx_x0_1,self.vrtx_y0_1])
-        self.testarr.append([self.vrtx_x1_0,self.vrtx_y1_0])
-        self.testarr.append([self.vrtx_x1_1,self.vrtx_y1_1])
-        # Render rectangle region of interest and markers
-        for vertex in range(len(self.testarr)):
-            if(vertex < len(self.testarr)-1):
-                line = self.maparea.create_line(self.testarr[vertex][0]
-                                                    ,self.testarr[vertex][1]
-                                                    ,self.testarr[vertex+1][0]
-                                                    ,self.testarr[vertex+1][1]
-                                                    ,fill='red'
-                                                    ,width=2) #(x0, y0, x1, y1, option, ...)
-                self.map_mrkrs = self.maparea.create_image(self.testarr[vertex][0]
-                                                          ,self.testarr[vertex][1] -14
-                                                          ,image=self.map_drone_mrkr
-                                                          ,state=tk.NORMAL) # Draw marker
-                self.mrkr_list.append(self.map_mrkrs)
-                self.rect_line.append(line)
-                self.lines.append(line)
-            elif(vertex == len(self.testarr)-1):
-                line = self.maparea.create_line(self.testarr[vertex][0]
-                                                    ,self.testarr[vertex][1]
-                                                    ,self.testarr[vertex-(len(self.testarr)-1)][0]
-                                                    ,self.testarr[vertex-(len(self.testarr)-1)][1]
-                                                    ,fill='red'
-                                                    ,width=2) #(x0, y0, x1, y1, option, ...)
-                self.map_mrkrs = self.maparea.create_image(self.testarr[vertex][0]
-                                                          ,self.testarr[vertex][1] -14
-                                                          ,image=self.map_drone_mrkr
-                                                          ,state=tk.NORMAL) # Draw marker
-                self.mrkr_list.append(self.map_mrkrs)
-                self.rect_line.append(line)
-                self.lines.append(line)
+        if mode == 1:   # single-waypoint
+            self.navigator.mod_waypoints([[self.getlat, self.getlong]])
+            self.clk_arr.append([x, y]) # List of marker pixel locations
+            self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
+            self.rend_mrkr(x, y)
+            self.rend_path()
+        elif mode == 2: # rect-waypoint
+            if(len(self.clk_arr) < 2):
+                self.clk_arr.append([x, y]) # List of marker pixel locations
+                self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
+
+                if(len(self.clk_arr) == 2):
+                    self.vrtx_x0_0   = self.pix_gps_coor[0][0]
+                    self.vrtx_y0_0   = self.pix_gps_coor[0][1]
+                    self.vrtx_x1_0   = self.pix_gps_coor[1][0]
+                    self.vrtx_y1_0   = self.pix_gps_coor[1][1]
+                    # set remaining vertices for ROI list
+                    self.vrtx_x0_1   = self.pix_gps_coor[1][0]
+                    self.vrtx_y0_1   = self.pix_gps_coor[0][1]
+                    self.vrtx_x1_1   = self.pix_gps_coor[0][0]
+                    self.vrtx_y1_1   = self.pix_gps_coor[1][1]
+
+                    self.gps_vrtcs.append([self.vrtx_x0_0,self.vrtx_y0_0])
+                    self.gps_vrtcs.append([self.vrtx_x0_1,self.vrtx_y0_1])
+                    self.gps_vrtcs.append([self.vrtx_x1_0,self.vrtx_y1_0])
+                    self.gps_vrtcs.append([self.vrtx_x1_1,self.vrtx_y1_1])
+
+                    for vertex in self.gps_vrtcs:
+                        self.rend_mrkr(*vertex)
+
+                    self.navigator.gen_waypnts(self.gps_vrtcs)
+                    self.rend_path()
+                    self.clk_arr = []
 
     # Single-waypoint selection
     def waypoint_rte(self,event):
         x = event.x                # Recent event variables
         y = event.y
+
+        mode = self.rte_selctn_var
 
         self.getlong, self.getlat = self.get_l(x, y)
         self.navigator.mod_waypoints([[self.getlat, self.getlong]])
@@ -421,7 +418,7 @@ class DCMainApp(object):
         self.clk_arr.append([x, y]) # List of marker pixel locations
         self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
 
-        self.rend_mrkrs(x, y)
+        self.rend_mrkr(x, y)
         self.rend_path()
 
     # Rectangle waypoint selection
@@ -451,17 +448,15 @@ class DCMainApp(object):
                 self.gps_vrtcs.append([self.vrtx_x1_0,self.vrtx_y1_0])
                 self.gps_vrtcs.append([self.vrtx_x1_1,self.vrtx_y1_1])
 
-                self.rend_rect_mrkrs()
+                for vertex in self.gps_vrtcs:
+                    self.rend_mrkr(*vertex)
+
                 self.navigator.gen_waypnts(self.gps_vrtcs)
                 self.rend_path()
                 self.clk_arr = []
 
     # Determine selection mode
-    def route_selctn(self):
-        if(self.rte_selctn_var.get() == 1):
-            self.maparea.bind("<Button-1>",self.waypoint_rte)
-        elif(self.rte_selctn_var.get() == 2):
-            self.maparea.bind("<Button-1>",self.roi_rect_rte)
+    def route_selctn(self): self.maparea.bind("<Button-1>", self.select_rte)
 
     # Remove selections and clear navigator waypoints
     def clear_slctns(self):
@@ -506,7 +501,7 @@ class DCMainApp(object):
 
     def d_forward(self):
         self.controller_manual.set()
-        #self.drone.moveForward()
+        self.drone.moveForward()
 
     def d_backward(self):
         self.controller_manual.set()
