@@ -13,13 +13,16 @@ class Drone(object):
         self.__speeds = [0.0, 0.0, 0.0, 0.0]
         self.__nav_update_spd = 1.0 / 200 # original navdata speed
         self.__speed_def = 1.0
+        self.__demo_landed   = [0.0, 0.0,  True, False, False]
+        self.__demo_flying   = [0.0, 0.0, False,  True, False]
+        self.__demo_hovering = [0.0, 0.0, False, False,  True]
 
         # accessed values from navigator
         print ">>> Initializing NavData"
         self.NavDataCount = 0
         self.NavData = {
                 "altitude":[0.0],
-                "demo":[0.0, 0.0, [0.0, 0.0, 0.0], 0.0, [0.0, 0.0, 0.0]],
+                "demo":[self.__demo_landed, 0.0, [0.0, 0.0, 0.0], 0.0, [0.0, 0.0, 0.0]],
                 "gps":self.__home_gps,
                 "magneto":[[0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                 "raw_measures":[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
@@ -49,9 +52,9 @@ class Drone(object):
         self.__navdata = Thread(
                 target = self.__nav_data_inc,
                 args = ())
-
         self.__navdata.start()
         self.__movement.start()
+
         print ">>> Simulator intialization complete"
 
     def __nav_data_inc(self):
@@ -118,15 +121,18 @@ class Drone(object):
         while self.__get_nav()["altitude"][0] < 0.5:
             self.moveUp()
             time.sleep(self.__nav_update_spd)
+        self.NavData["demo"][0] = self.__demo_flying
         self.hover()
         return True
 
     def land(self):
         if self.__curr_status == self.__status[0]: return False
+        self.NavData["demo"][0] = self.__demo_hovering
         while self.__get_nav()["altitude"][0] > 0:
             self.moveDown()
             time.sleep(self.__nav_update_spd)
         self.hover()
+        self.NavData["demo"][0] = self.__demo_landed
         self.__curr_status = self.__status[0]
         return True
 
