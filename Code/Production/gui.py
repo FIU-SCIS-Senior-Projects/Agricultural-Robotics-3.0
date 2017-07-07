@@ -169,20 +169,10 @@ class DCMainApp(object):
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
-<<<<<<< HEAD
         self.sensor_label_text = []
-        self.sensor_objs_names = ["battdis", "altdis", "veldis", "headis", "gpsdis"]
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "headis", "gpsdis", "stadis"]
         for name in self.sensor_objs_names: self.sensor_label_text.append(" ")
         self.sensor_cols = list(range(1,len(self.sensor_objs_names) + 1))
-||||||| merged common ancestors
-        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis"]
-        self.sensor_label_text = [" ", " ", " ", " "]
-        self.sensor_cols = [1,2,3,4]
-=======
-        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis", "stadis"]
-        self.sensor_label_text = [" ", " ", " ", " ", " "]
-        self.sensor_cols = [1,2,3,4,5]
->>>>>>> develop
 
         for i in range(len(self.sensor_objs_names)):
             self.sensor_objs.append(tk.Label(
