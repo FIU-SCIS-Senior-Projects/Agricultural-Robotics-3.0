@@ -169,9 +169,9 @@ class DCMainApp(object):
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
-        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis"]
-        self.sensor_label_text = [" ", " ", " ", " "]
-        self.sensor_cols = [1,2,3,4]
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis", "stadis"]
+        self.sensor_label_text = [" ", " ", " ", " ", " "]
+        self.sensor_cols = [1,2,3,4,5]
 
         for i in range(len(self.sensor_objs_names)):
             self.sensor_objs.append(tk.Label(
@@ -281,6 +281,7 @@ class DCMainApp(object):
         self.velstat()
         self.gpsstat()
         self.camstat()
+        self.stastat()
 
     def battstat(self):
         battdis = self.sensor_objs_names.index("battdis")
@@ -310,6 +311,12 @@ class DCMainApp(object):
                     ).quantize(Decimal('0.001')))
         self.sensor_objs[altdis].config(text=altDisplay)
         self.root.after(self.stat_refresh, self.altstat)
+
+    def stastat(self):
+        stadis = self.sensor_objs_names.index("stadis")
+        staDisplay = "{}".format(self.navigator.stus)
+    	self.sensor_objs[stadis].config(text=staDisplay)
+    	self.root.after(self.stat_refresh, self.stastat)
 
     def velstat(self):
         veldis = self.sensor_objs_names.index("veldis")
@@ -362,7 +369,6 @@ class DCMainApp(object):
         self.waypoints = []
 
     def rend_wypnt_path(self):
-        print self.navigator.waypoints
         curr_px = ((self.navigator.get_nav()["gps"][1] - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
         curr_py = ((self.navigator.get_nav()["gps"][0] - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
         for path in range(len(self.navigator.waypoints)):
@@ -672,7 +678,7 @@ class DCMainApp(object):
         self.gps_vrtcs = []
         self.navigator.gen_waypnts(self.gps_vrtcs)
 
-        print ">>>Route removed"
+        print ">>> Route removed"
 
 
     def take_off(self):
