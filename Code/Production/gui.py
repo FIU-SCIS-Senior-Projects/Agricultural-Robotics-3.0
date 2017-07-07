@@ -370,19 +370,20 @@ class DCMainApp(object):
         elif mode == 2: # rect-waypoint
             if(len(self.clk_arr) < 2):
                 self.clk_arr.append([x, y]) # List of marker pixel locations
-                if(len(self.clk_arr) == 2):
-                    a_lon, a_lat = self.get_l(*self.clk_arr[0])
-                    b_lon, b_lat = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
-                    c_lon, c_lat = self.get_l(*self.clk_arr[1])
-                    d_lon, d_lat = self.get_l(self.clk_arr[0][0], self.clk_arr[1][1])
-                    a = [a_lat, a_lon]
-                    b = [b_lat, b_lon]
-                    c = [c_lat, c_lon]
-                    d = [d_lat, d_lon]
 
-                    self.navigator.gen_waypnts([a, b, c, d])
-                    self.rend_path()
-                    self.clk_arr = []
+            if(len(self.clk_arr) == 2):
+                a_lon, a_lat = self.get_l(*self.clk_arr[0])
+                b_lon, b_lat = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
+                c_lon, c_lat = self.get_l(*self.clk_arr[1])
+                d_lon, d_lat = self.get_l(self.clk_arr[0][0], self.clk_arr[1][1])
+                a = [a_lat, a_lon]
+                b = [b_lat, b_lon]
+                c = [c_lat, c_lon]
+                d = [d_lat, d_lon]
+
+                self.navigator.gen_waypnts([a, b, c, d])
+                self.rend_path()
+                self.clk_arr = []
 
     # Determine selection mode
     def route_selctn(self):
