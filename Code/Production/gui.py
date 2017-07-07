@@ -661,15 +661,6 @@ class DCMainApp(object):
         elif(self.rte_selctn_var.get() == 2):
             self.maparea.bind("<Button-1>",self.roi_rect_rte)
 
-    def lnch_route(self):
-        if(self.rte_selctn_var.get() == 1):
-            print ">>> Map Drone Waypoints Route"
-            self.rend_wypnt_path()
-        elif(self.rte_selctn_var.get()==2):
-            print ">>> Map Drone ROI Route"
-            self.rend_rect_path()
-        print ">>> Drone Beginning Route"
-
     def clear_slctns(self):
         self.clk_pix_x = ''
         self.clk_pix_y = ''
@@ -870,6 +861,12 @@ class DCMainApp(object):
 
     # flight buttons
     def lnch_route(self):
+        if(self.rte_selctn_var.get() == 1):
+            print ">>> Map Drone Waypoints Route"
+            self.rend_wypnt_path()
+        elif(self.rte_selctn_var.get()==2):
+            print ">>> Map Drone ROI Route"
+            self.rend_rect_path()
         print ">>>Drone Beginning Route"
         moving = Thread(target=self.nav_waypoints, args=())
         moving.daemon = True
