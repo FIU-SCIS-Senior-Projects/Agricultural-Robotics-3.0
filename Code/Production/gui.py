@@ -364,29 +364,6 @@ class DCMainApp(object):
             self.lines.append(line)
             curr_px, curr_py = next_px, next_py
 
-    def rend_wypnt_path(self):
-        curr_lat = self.navigator.get_nav()["gps"][0]
-        curr_lon = self.navigator.get_nav()["gps"][1]
-        curr_px, curr_py = self.get_p(curr_lat, curr_lon)
-
-        for path in range(len(self.navigator.waypoints)):
-            new_lat = self.navigator.waypoints[path][0]
-            new_lon = self.navigator.waypoints[path][1]
-            new_px, new_py = self.get_p(new_lat, new_lon)
-
-            if(curr_px != new_px and curr_py != new_py and self.navigator.waypoints[path-1]):
-                line = self.maparea.create_line(
-                        curr_px,
-                        curr_py,
-                        new_px,
-                        new_py,
-                        fill='green',
-                        width=2)
-                curr_px = new_px
-                curr_py = new_py
-                self.rect_line.append(line)
-                self.lines.append(line)
-
     def rend_rect_mrkrs(self):
         self.vrtx_x0_0   = self.clk_arr[0][0]
         self.vrtx_y0_0   = self.clk_arr[0][1]
@@ -432,28 +409,6 @@ class DCMainApp(object):
                 self.mrkr_list.append(self.map_mrkrs)
                 self.rect_line.append(line)
                 self.lines.append(line)
-                #self.rend_rect_path()
-
-    def rend_rect_path(self):
-        # Path rendering
-        for edge in range(len(self.navigator.waypoints)):
-            if(edge < len(self.navigator.waypoints)-1):
-                line = self.maparea.create_line(self.navigator.waypoints[edge][1]
-                                                    ,self.navigator.waypoints[edge][0]
-                                                    ,self.navigator.waypoints[edge + 1][1]
-                                                    ,self.navigator.waypoints[edge + 1][0]
-                                                    ,fill='green'
-                                                    ,width=2)
-                self.lines.append(line)
-
-            elif(edge == len(self.navigator.waypoints)):
-                line = self.maparea.create_line(self.navigator.waypoints[edge-1][1]
-                                                    ,self.navigator.waypoints[edge-1][0]
-                                                    ,self.navigator.waypoints[edge][1]
-                                                    ,self.navigator.waypoints[edge][0]
-                                                    ,fill='green'
-                                                    ,width=2)
-                self.lines.append(line)
 
     # Single-waypoint selection
     def waypoint_rte(self,event):
@@ -498,7 +453,6 @@ class DCMainApp(object):
 
                 self.rend_rect_mrkrs()
                 self.navigator.gen_waypnts(self.gps_vrtcs)
-                #self.rend_rect_path()
                 self.rend_path()
                 self.clk_arr = []
 
@@ -587,7 +541,6 @@ class DCMainApp(object):
     def lnch_route(self):
         if(self.rte_selctn_var.get() == 1):
             print ">>> Map Drone Waypoints Route"
-            #self.rend_wypnt_path()
         elif(self.rte_selctn_var.get()==2):
             print ">>> Map Drone ROI Route"
         print ">>> Drone Beginning Route"
