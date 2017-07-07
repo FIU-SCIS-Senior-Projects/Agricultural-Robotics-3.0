@@ -66,9 +66,9 @@ class DCMainApp(object):
         # Internal storage of map tiles will discard need for an active internet connection.
         self.LAT     = 25.759027         #Center latitude of staticmap image
         self.LONG    = -80.374598        #Center longitude of staticmap image
-        self.MINLAT  = 25.758544         #Lower bound staticmap image latitude
+        self.MINLAT  = 25.759510         #Upper bound staticmap image latitude
         self.MINLONG = -80.375419        #Lower bound staticmap image longitude
-        self.MAXLAT  = 25.759510         #Upper bound staticmap image latitude
+        self.MAXLAT  = 25.758544         #Lower bound staticmap image latitude
         self.MAXLONG = -80.373815        #Upper bound staticmap image longitude
 
         # Pixel width calculation dx and dy
