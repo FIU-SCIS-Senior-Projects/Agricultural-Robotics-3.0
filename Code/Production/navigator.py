@@ -166,10 +166,9 @@ class Navigator:
         """Pop the next coordinate from the queue to current target"""
         if self.__tar_gps == self.__home or not self.waypoints:
             self.__tar_gps = None
-            return True
-        try: self.__tar_gps = self.waypoints.popleft()
-        except IndexError: self.__tar_gps = self.__home
-        return True
+        else:
+            try: self.__tar_gps = self.waypoints.popleft()
+            except IndexError: self.__tar_gps = self.__home
 
     def __calc_distance(self, start, finish):
         """Calculate distance to target"""

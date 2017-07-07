@@ -692,6 +692,7 @@ class DCMainApp(object):
 
         self.gps_vrtcs = []
         self.navigator.gen_waypnts(self.gps_vrtcs)
+        self.navigator.next_tar()
 
         print ">>> Route removed"
 
