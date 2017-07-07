@@ -48,14 +48,9 @@ class DCMainApp(object):
 
         # Pixel map click function
         self.clk_arr = []
-        self.clk_pix_x = ''
-        self.clk_pix_y = ''
 
         # Map marker List
-        self.pix_gps_coor = []
-        self.mrkr_list = []
-        self.rect_line = []
-        self.gps_vrtcs = []
+        self.mrkrs = []
         self.testarr = []
         self.lines = []
 
@@ -346,10 +341,7 @@ class DCMainApp(object):
                 x, y - 14,
                 image=self.map_drone_mrkr,
                 state=tk.NORMAL) # Draw marker
-
-        self.getlong, self.getlat = self.get_l(x, y)
-        self.navigator.mod_waypoints([[self.getlat, self.getlong]])
-        self.mrkr_list.append(self.map_mrkrs)
+        self.mrkrs.append(self.map_mrkrs)
 
     def rend_path(self):
         curr_lat = self.navigator.get_nav()["gps"][0]
@@ -373,115 +365,44 @@ class DCMainApp(object):
 
         if mode == 1:   # single-waypoint
             self.navigator.mod_waypoints([[self.getlat, self.getlong]])
-            self.clk_arr.append([x, y]) # List of marker pixel locations
-            self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
             self.rend_mrkr(x, y)
             self.rend_path()
         elif mode == 2: # rect-waypoint
             if(len(self.clk_arr) < 2):
                 self.clk_arr.append([x, y]) # List of marker pixel locations
-                self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
-
                 if(len(self.clk_arr) == 2):
-                    self.vrtx_x0_0   = self.pix_gps_coor[0][0]
-                    self.vrtx_y0_0   = self.pix_gps_coor[0][1]
-                    self.vrtx_x1_0   = self.pix_gps_coor[1][0]
-                    self.vrtx_y1_0   = self.pix_gps_coor[1][1]
-                    # set remaining vertices for ROI list
-                    self.vrtx_x0_1   = self.pix_gps_coor[1][0]
-                    self.vrtx_y0_1   = self.pix_gps_coor[0][1]
-                    self.vrtx_x1_1   = self.pix_gps_coor[0][0]
-                    self.vrtx_y1_1   = self.pix_gps_coor[1][1]
+                    a_lon, a_lat = self.get_l(*self.clk_arr[0])
+                    b_lon, b_lat = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
+                    c_lon, c_lat = self.get_l(*self.clk_arr[1])
+                    d_lon, d_lat = self.get_l(self.clk_arr[0][0], self.clk_arr[1][1])
+                    a = [a_lat, a_lon]
+                    b = [b_lat, b_lon]
+                    c = [c_lat, c_lon]
+                    d = [d_lat, d_lon]
 
-                    self.gps_vrtcs.append([self.vrtx_x0_0,self.vrtx_y0_0])
-                    self.gps_vrtcs.append([self.vrtx_x0_1,self.vrtx_y0_1])
-                    self.gps_vrtcs.append([self.vrtx_x1_0,self.vrtx_y1_0])
-                    self.gps_vrtcs.append([self.vrtx_x1_1,self.vrtx_y1_1])
-
-                    for vertex in self.gps_vrtcs:
-                        self.rend_mrkr(*vertex)
-
-                    self.navigator.gen_waypnts(self.gps_vrtcs)
+                    self.navigator.gen_waypnts([a, b, c, d])
                     self.rend_path()
                     self.clk_arr = []
 
-    # Single-waypoint selection
-    def waypoint_rte(self,event):
-        x = event.x                # Recent event variables
-        y = event.y
-
-        mode = self.rte_selctn_var
-
-        self.getlong, self.getlat = self.get_l(x, y)
-        self.navigator.mod_waypoints([[self.getlat, self.getlong]])
-
-        self.clk_arr.append([x, y]) # List of marker pixel locations
-        self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
-
-        self.rend_mrkr(x, y)
-        self.rend_path()
-
-    # Rectangle waypoint selection
-    def roi_rect_rte(self,event):
-        x = event.x                # Recent event variables
-        y = event.y
-
-        self.getlong, self.getlat = self.get_l(x, y)
-
-        if(len(self.clk_arr) < 2):
-            self.clk_arr.append([x, y]) # List of marker pixel locations
-            self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
-
-            if(len(self.clk_arr) == 2):
-                self.vrtx_x0_0   = self.pix_gps_coor[0][0]
-                self.vrtx_y0_0   = self.pix_gps_coor[0][1]
-                self.vrtx_x1_0   = self.pix_gps_coor[1][0]
-                self.vrtx_y1_0   = self.pix_gps_coor[1][1]
-                # set remaining vertices for ROI list
-                self.vrtx_x0_1   = self.pix_gps_coor[1][0]
-                self.vrtx_y0_1   = self.pix_gps_coor[0][1]
-                self.vrtx_x1_1   = self.pix_gps_coor[0][0]
-                self.vrtx_y1_1   = self.pix_gps_coor[1][1]
-
-                self.gps_vrtcs.append([self.vrtx_x0_0,self.vrtx_y0_0])
-                self.gps_vrtcs.append([self.vrtx_x0_1,self.vrtx_y0_1])
-                self.gps_vrtcs.append([self.vrtx_x1_0,self.vrtx_y1_0])
-                self.gps_vrtcs.append([self.vrtx_x1_1,self.vrtx_y1_1])
-
-                for vertex in self.gps_vrtcs:
-                    self.rend_mrkr(*vertex)
-
-                self.navigator.gen_waypnts(self.gps_vrtcs)
-                self.rend_path()
-                self.clk_arr = []
-
     # Determine selection mode
-    def route_selctn(self): self.maparea.bind("<Button-1>", self.select_rte)
+    def route_selctn(self):
+        self.clear_slctns()
+        self.maparea.bind("<Button-1>", self.select_rte)
 
     # Remove selections and clear navigator waypoints
     def clear_slctns(self):
-        self.clk_pix_x = ''
-        self.clk_pix_y = ''
         self.clk_arr = []
-        self.pix_gps_coor = []
-        self.gps_vrtcs = []
         self.testarr = []
 
-        for mrkr in range(len(self.mrkr_list)):
-            self.maparea.delete(self.mrkr_list[mrkr])
-        self.mrkr_list = []
-        for line in range(len(self.rect_line)):
-            self.maparea.delete(self.rect_line[line])
+        for mrkr in range(len(self.mrkrs)):
+            self.maparea.delete(self.mrkrs[mrkr])
+        self.mrkrs = []
         for line in self.lines:
             self.maparea.delete(line)
-        self.rect_line = []
         self.lines = []
 
-        self.gps_vrtcs = []
         self.navigator.waypoints.clear()
         self.navigator.next_tar()
-
-        print ">>> Route removed"
 
     # flight functions
     def take_off(self):
