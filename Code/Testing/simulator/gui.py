@@ -1,7 +1,7 @@
 from Tkinter import *
 from PIL import Image, ImageTk
 import cv2, math, select, sys, time
-from ps_drone import Drone
+from ps_sim import Drone
 from navigator import Navigator
 #from viewer import Camera
 from threading import Event, Thread
@@ -316,7 +316,8 @@ class DCMainApp(object):
 
     def stastat(self):
         stadis = self.sensor_objs_names.index("stadis")
-        staDisplay = "{}".format(self.navigator.stus)
+        staDisplay = "{}".format(
+                self.navigator.get_nav()["stus"])
     	self.sensor_objs[stadis].config(text=staDisplay)
     	self.root.after(self.stat_refresh, self.stastat)
 
