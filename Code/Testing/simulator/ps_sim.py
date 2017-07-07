@@ -1,5 +1,5 @@
 from threading import Thread, Event
-from math import cos, radians, sin, atan2
+from math import cos, radians, sin, atan2, pi
 import numpy as np
 import time
 
@@ -66,34 +66,34 @@ class Drone(object):
     def __pos_update(self):
         print ">>> Position Updater Begun"
         while not self.__shutdown.is_set():
-            hdg = atan2(*self.NavData["magneto"][0][:-1])
+            hdg = -atan2(self.NavData["magneto"][0][1], self.NavData["magneto"][0][0])
             rot = np.matrix([
                     [ cos(hdg), sin(hdg), 0.0],
                     [-sin(hdg), cos(hdg), 0.0],
                     [      0.0,      0.0, 1.0]])
-            dz  = self.__speeds[2] * self.__nav_update_spd
-            dt = self.__speeds[3] * self.__nav_update_spd
+            dz  = self.__speeds[2]
+            dt = self.__speeds[3] * 2 * pi
             mov = np.matrix([
                 [self.__speeds[1] * self.__nav_update_spd],
                 [self.__speeds[0] * self.__nav_update_spd],
-                [                                      dt]])
+                [                                     hdg]])
             dxy = rot * mov
 
             if not self.__still.is_set() and self.__navlock.wait(self.__nav_update_spd):
                 self.__navlock.clear()
                 
                 # adjusting altitude
-                self.NavData["altitude"][0] += dz * 1000
-
-                # adjusting heading
-                currMag = self.NavData["magneto"][0]
-                self.NavData["magneto"][0] = ((dt * 50) + currMag + 360) % 360
+                self.NavData["altitude"][0] += dz
 
                 # adjusting latitude
                 self.NavData["gps"][0] += float(dxy[1] / 111132)
 
                 # adjusting longitude
                 self.NavData["gps"][1] += float(dxy[0] / 111132)
+
+                # adjusting heading
+                self.NavData["magneto"][0][0] = sin(hdg + dt)
+                self.NavData["magneto"][0][1] = cos(hdg + dt)
 
                 # wake up waiting threads
                 self.__navlock.set()
@@ -145,7 +145,7 @@ class Drone(object):
 
     def move(self, leftright, backwardforward, downup, turnleftright): 
         if self.__curr_status == self.__status[0]: return False
-        self.__speeds = [-leftright, backwardforward, downup, turnleftright]
+        self.__speeds = [leftright, backwardforward, downup, turnleftright]
         self.__curr_status = self.__status[2]
         self.__still.clear()
         return True
