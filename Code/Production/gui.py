@@ -66,9 +66,9 @@ class DCMainApp(object):
         # Internal storage of map tiles will discard need for an active internet connection.
         self.LAT     = 25.759027         #Center latitude of staticmap image
         self.LONG    = -80.374598        #Center longitude of staticmap image
-        self.MAXLAT  = 25.758544         #Lower bound staticmap image latitude
-        self.MINLONG = -80.375419        #Lower bound staticmap image longitude
         self.MINLAT  = 25.759510         #Upper bound staticmap image latitude
+        self.MINLONG = -80.375419        #Lower bound staticmap image longitude
+        self.MAXLAT  = 25.758544         #Lower bound staticmap image latitude
         self.MAXLONG = -80.373815        #Upper bound staticmap image longitude
 
         # Pixel width calculation dx and dy
@@ -169,10 +169,20 @@ class DCMainApp(object):
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
+<<<<<<< HEAD
         self.sensor_label_text = []
         self.sensor_objs_names = ["battdis", "altdis", "veldis", "headis", "gpsdis"]
         for name in self.sensor_objs_names: self.sensor_label_text.append(" ")
         self.sensor_cols = list(range(1,len(self.sensor_objs_names) + 1))
+||||||| merged common ancestors
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis"]
+        self.sensor_label_text = [" ", " ", " ", " "]
+        self.sensor_cols = [1,2,3,4]
+=======
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis", "stadis"]
+        self.sensor_label_text = [" ", " ", " ", " ", " "]
+        self.sensor_cols = [1,2,3,4,5]
+>>>>>>> develop
 
         for i in range(len(self.sensor_objs_names)):
             self.sensor_objs.append(tk.Label(
@@ -283,6 +293,7 @@ class DCMainApp(object):
         self.headingstat()
         self.gpsstat()
         self.camstat()
+        self.stastat()
 
     def battstat(self):
         battdis = self.sensor_objs_names.index("battdis")
@@ -311,6 +322,12 @@ class DCMainApp(object):
                     ).quantize(Decimal('0.001')))
         self.sensor_objs[altdis].config(text=altDisplay)
         self.root.after(self.stat_refresh, self.altstat)
+
+    def stastat(self):
+        stadis = self.sensor_objs_names.index("stadis")
+        staDisplay = "{}".format(self.navigator.stus)
+    	self.sensor_objs[stadis].config(text=staDisplay)
+    	self.root.after(self.stat_refresh, self.stastat)
 
     def velstat(self):
         veldis = self.sensor_objs_names.index("veldis")
@@ -376,7 +393,6 @@ class DCMainApp(object):
         self.waypoints = []
 
     def rend_wypnt_path(self):
-        print self.navigator.waypoints
         curr_px = ((self.navigator.get_nav()["gps"][1] - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
         curr_py = ((self.navigator.get_nav()["gps"][0] - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
         for path in range(len(self.navigator.waypoints)):
@@ -687,7 +703,7 @@ class DCMainApp(object):
         self.gps_vrtcs = []
         self.navigator.gen_waypnts(self.gps_vrtcs)
 
-        print ">>>Route removed"
+        print ">>> Route removed"
 
 
     def take_off(self):
