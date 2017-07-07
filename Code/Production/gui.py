@@ -56,10 +56,6 @@ class DCMainApp(object):
         self.mrkr_list = []
         self.rect_line = []
         self.gps_vrtcs = []
-        self.waypoints = []
-        self.rect_path_line = []
-        self.gen_waypnts_arr = []
-
         self.testarr = []
 
         # Radiobutton variable
@@ -315,6 +311,18 @@ class DCMainApp(object):
     	self.root.after(self.stat_refresh, self.gpsstat)
 
     # Map drawing
+    def get_p(self, lat, lon):
+        """Convert given lat, lon to pixel location on map"""
+        px = ((lon - self.MINLON) / (self.MAXLON - self.MINLON)) * self.map_width
+        py = ((lat - self.MINLAT) / (self.MAXLAT - self.MINLAT)) * self.map_height
+        return px, py
+
+    def get_l(self, px, py):
+        """Convert given pixel location to lat, lon on map"""
+        lat = (py * (self.MAXLAT - self.MINLAT) / self.map_height) + self.MINLAT
+        lon = (px * (self.MAXLON - self.MINLON) / self.map_width) + self.MINLON
+        return lon, lat
+
     def render_map(self):
         cent_mapx = (self.map_width/2) + 3
         cent_mapy = (self.map_height/2) + 3
@@ -322,16 +330,14 @@ class DCMainApp(object):
 
     def act_drone_loc(self):
         self.maparea.delete(self.dr_img)
-
-        #capture coordinates
+        curr_lat = self.navigator.get_nav()["gps"][0]
         curr_lon = self.navigator.get_nav()["gps"][1]
-        curr_lat  = self.navigator.get_nav()["gps"][0]
-
-        curr_px = ((curr_lon - self.MINLON)/(self.MAXLON - self.MINLON)) * (self.map_width - 0) + 0
-        curr_py = ((curr_lat - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
-
-        self.dr_img = self.maparea.create_image(curr_px,curr_py,image=self.map_drone,state=tk.NORMAL)
-        #redraw
+        curr_px, curr_py = self.get_p(curr_lat, curr_lon)
+        self.dr_img = self.maparea.create_image(
+                curr_px,
+                curr_py,
+                image=self.map_drone,
+                state=tk.NORMAL)
         self.root.after(900, self.act_drone_loc)
 
     def rend_mrkrs(self):
@@ -339,34 +345,32 @@ class DCMainApp(object):
                                                                  ,image=self.map_drone_mrkr
                                                                  , state=tk.NORMAL) # Draw marker
 
-        self.getlat =  ((self.clk_pix_y * (self.MAXLAT - self.MINLAT))/(self.map_height-0)) + self.MINLAT
-        self.getlong = ((self.clk_pix_x * (self.MAXLON -
-            self.MINLON))/(self.map_width-0)) + self.MINLON
+        self.getlong, self.getlat = self.get_l(self.clk_pix_x, self.clk_pix_y)
 
-        self.waypoints.append([self.getlat,self.getlong])
-        self.navigator.mod_waypoints(self.waypoints)
+        self.navigator.mod_waypoints([self.getlat, self.getlong])
         self.mrkr_list.append(self.map_mrkrs)
-        self.waypoints = []
 
     def rend_wypnt_path(self):
-        curr_px = ((self.navigator.get_nav()["gps"][1] -
-            self.MINLON)/(self.MAXLON - self.MINLON)) * (self.map_width - 0) + 0
-        curr_py = ((self.navigator.get_nav()["gps"][0] - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
+        curr_lat = self.navigator.get_nav()["gps"][0]
+        curr_lon = self.navigator.get_nav()["gps"][1]
+        curr_px, curr_py = self.get_p(curr_lat, curr_lon)
+
         for path in range(len(self.navigator.waypoints)):
-            new_px = ((self.navigator.waypoints[path][1] -
-                self.MINLON)/(self.MAXLON - self.MINLON)) * (self.map_width - 0) + 0
-            new_py = ((self.navigator.waypoints[path][0]  - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
+            new_lat = self.navigator.waypoints[path][0]
+            new_lon = self.navigator.waypoints[path][1]
+            new_px, new_py = self.get_p(new_lat, new_lon)
 
             if(curr_px != new_px and curr_py != new_py and self.navigator.waypoints[path-1]):
-                self.line = self.maparea.create_line(curr_px
-                                    ,curr_py
-                                    ,new_px
-                                    ,new_py
-                                    ,fill='green'
-                                    ,width=2)
+                line = self.maparea.create_line(
+                        curr_px,
+                        curr_py,
+                        new_px,
+                        new_py,
+                        fill='green',
+                        width=2)
                 curr_px = new_px
                 curr_py = new_py
-                self.rect_line.append(self.line)
+                self.rect_line.append(line)
 
     def rend_rect_mrkrs(self):
         self.vrtx_x0_0   = self.clk_arr[0][0]
@@ -386,7 +390,7 @@ class DCMainApp(object):
         # Render rectangle region of interest and markers
         for vertex in range(len(self.testarr)):
             if(vertex < len(self.testarr)-1):
-                self.line = self.maparea.create_line(self.testarr[vertex][0]
+                line = self.maparea.create_line(self.testarr[vertex][0]
                                                     ,self.testarr[vertex][1]
                                                     ,self.testarr[vertex+1][0]
                                                     ,self.testarr[vertex+1][1]
@@ -397,9 +401,9 @@ class DCMainApp(object):
                                                           ,image=self.map_drone_mrkr
                                                           ,state=tk.NORMAL) # Draw marker
                 self.mrkr_list.append(self.map_mrkrs)
-                self.rect_line.append(self.line)
+                self.rect_line.append(line)
             elif(vertex == len(self.testarr)-1):
-                self.line = self.maparea.create_line(self.testarr[vertex][0]
+                line = self.maparea.create_line(self.testarr[vertex][0]
                                                     ,self.testarr[vertex][1]
                                                     ,self.testarr[vertex-(len(self.testarr)-1)][0]
                                                     ,self.testarr[vertex-(len(self.testarr)-1)][1]
@@ -410,202 +414,49 @@ class DCMainApp(object):
                                                           ,image=self.map_drone_mrkr
                                                           ,state=tk.NORMAL) # Draw marker
                 self.mrkr_list.append(self.map_mrkrs)
-                self.rect_line.append(self.line)
+                self.rect_line.append(line)
                 #self.rend_rect_path()
 
     def rend_rect_path(self):
-        # Local variables
-        self.range = 6
-        self.rec_vrts_1 = self.testarr[0]   #rec_vrts_1[0] = longitude, rec_vrts_1[1] = latitude
-        self.rec_vrts_2 = self.testarr[1]
-        self.rec_vrts_3 = self.testarr[2]
-        self.rec_vrts_4 = self.testarr[3]
-
-        # East to West path orientation
-        if(abs(self.rec_vrts_1[0] - self.rec_vrts_3[0]) > abs(self.rec_vrts_1[1]-self.rec_vrts_3[1])
-                                and self.rec_vrts_1[0] > self.rec_vrts_3[0]):
-            # Generate test waypoints longitudinally
-            self.max_vrtcs_lon = abs(self.rec_vrts_1[0] - self.rec_vrts_3[0])/self.range
-            self.temp_lon = self.rec_vrts_1[0]
-            self.temp_lat = self.rec_vrts_1[1]
-
-            self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
-            for vrtx in range(self.range):
-                #start vertex -> shortest length -> longest length -> shortest length etc.
-                self.new_tempvrtx = self.temp_lon - self.max_vrtcs_lon
-                if(vrtx % 2 == 0 and vrtx < self.range - 1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_3[1]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lon = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx < self.range -1):
-                    self.gen_waypnts_arr.append([self.temp_lat,self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_1[1]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lon = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_3[1]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_3[0]])
-                    self.new_tempvrtx = 0
-                    break
-                elif(vrtx % 2 == 0 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_2[1]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_2[0]])
-                    self.new_tempvrtx = 0
-                    break
-        #West to East path orientation
-        elif(abs(self.rec_vrts_1[0] - self.rec_vrts_3[0]) > abs(self.rec_vrts_1[1]-self.rec_vrts_3[1])
-                                and self.rec_vrts_1[0] < self.rec_vrts_3[0]):
-            # Generate test waypoints longitudinally
-            self.max_vrtcs_lon = abs(self.rec_vrts_1[0] - self.rec_vrts_3[0])/self.range
-            self.temp_lon = self.rec_vrts_1[0]
-            self.temp_lat = self.rec_vrts_1[1]
-
-            self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
-            for vrtx in range(self.range):
-                #start vertex -> shortest length -> longest length -> shortest length etc.
-                self.new_tempvrtx = self.temp_lon + self.max_vrtcs_lon
-                if(vrtx % 2 == 0 and vrtx < self.range - 1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_3[1]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lon = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx < self.range -1):
-                    self.gen_waypnts_arr.append([self.temp_lat,self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_1[1]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lon = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_3[1]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_3[0]])
-                    self.new_tempvrtx = 0
-                    break
-                elif(vrtx % 2 == 0 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.temp_lat, self.new_tempvrtx])
-                    self.temp_lat = self.rec_vrts_2[1]
-                    self.gen_waypnts_arr.append([self.temp_lat, self.rec_vrts_2[0]])
-                    self.new_tempvrtx = 0
-                    break
-        # South to North path orientation
-        elif(abs(self.rec_vrts_1[0] - self.rec_vrts_3[0]) < abs(self.rec_vrts_1[1]-self.rec_vrts_3[1])
-                                and self.rec_vrts_1[1] > self.rec_vrts_3[1]):
-            # Generate test waypoints longitudinally
-            self.max_vrtcs_lat = abs(self.rec_vrts_1[1] - self.rec_vrts_3[1])/self.range
-            self.temp_lon = self.rec_vrts_1[0]
-            self.temp_lat = self.rec_vrts_1[1]
-
-            self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
-            for vrtx in range(self.range):
-                #start vertex -> shortest length -> longest length -> shortest length etc.
-                self.new_tempvrtx = self.temp_lat - self.max_vrtcs_lat
-                if(vrtx % 2 == 0 and vrtx < self.range - 1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lon = self.rec_vrts_3[0]
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lat = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx < self.range -1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx,self.temp_lon])
-                    self.temp_lon = self.rec_vrts_1[0]
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lat = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lon = self.rec_vrts_3[0]
-                    self.gen_waypnts_arr.append([self.rec_vrts_3[1], self.temp_lon])
-                    self.new_tempvrtx = 0
-                    break
-                elif(vrtx % 2 == 0 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.rec_vrts_3[1], self.temp_lon])
-                    self.new_tempvrtx = 0
-                    break
-        # North to South path orientation
-        elif(abs(self.rec_vrts_1[0] - self.rec_vrts_3[0]) < abs(self.rec_vrts_1[1]-self.rec_vrts_3[1])
-                                and self.rec_vrts_1[1] < self.rec_vrts_3[1]):
-            # Generate test waypoints longitudinally
-            self.max_vrtcs_lat = abs(self.rec_vrts_1[1] - self.rec_vrts_3[1])/self.range
-            self.temp_lon = self.rec_vrts_1[0]
-            self.temp_lat = self.rec_vrts_1[1]
-
-            self.gen_waypnts_arr.append([self.temp_lat,self.temp_lon])
-            for vrtx in range(self.range):
-                #start vertex -> shortest length -> longest length -> shortest length etc.
-                self.new_tempvrtx = self.temp_lat + self.max_vrtcs_lat
-                if(vrtx % 2 == 0 and vrtx < self.range - 1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lon = self.rec_vrts_3[0]
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lat = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx < self.range -1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx,self.temp_lon])
-                    self.temp_lon = self.rec_vrts_1[0]
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lat = self.new_tempvrtx
-                    self.new_tempvrtx = 0
-                elif(vrtx % 2 == 1 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.new_tempvrtx, self.temp_lon])
-                    self.temp_lon = self.rec_vrts_3[0]
-                    self.gen_waypnts_arr.append([self.rec_vrts_3[1], self.temp_lon])
-                    self.new_tempvrtx = 0
-                    break
-                elif(vrtx % 2 == 0 and vrtx == self.range-1):
-                    self.gen_waypnts_arr.append([self.rec_vrts_3[1], self.temp_lon])
-                    self.new_tempvrtx = 0
-                    break
         # Path rendering
-        for edge in range(len(self.gen_waypnts_arr)):
-            if(edge < len(self.gen_waypnts_arr)-1):
-                self.line = self.maparea.create_line(self.gen_waypnts_arr[edge][1]
-                                                    ,self.gen_waypnts_arr[edge][0]
-                                                    ,self.gen_waypnts_arr[edge + 1][1]
-                                                    ,self.gen_waypnts_arr[edge + 1][0]
+        for edge in range(len(self.navigator.waypoints)):
+            if(edge < len(self.navigator.waypoints)-1):
+                line = self.maparea.create_line(self.navigator.waypoints[edge][1]
+                                                    ,self.navigator.waypoints[edge][0]
+                                                    ,self.navigator.waypoints[edge + 1][1]
+                                                    ,self.navigator.waypoints[edge + 1][0]
                                                     ,fill='green'
                                                     ,width=2)
-                self.rect_path_line.append(self.line)
 
-            elif(edge == len(self.gen_waypnts_arr)):
-                self.line = self.maparea.create_line(self.gen_waypnts_arr[edge-1][1]
-                                                    ,self.gen_waypnts_arr[edge-1][0]
-                                                    ,self.gen_waypnts_arr[edge][1]
-                                                    ,self.gen_waypnts_arr[edge][0]
+            elif(edge == len(self.navigator.waypoints)):
+                line = self.maparea.create_line(self.navigator.waypoints[edge-1][1]
+                                                    ,self.navigator.waypoints[edge-1][0]
+                                                    ,self.navigator.waypoints[edge][1]
+                                                    ,self.navigator.waypoints[edge][0]
                                                     ,fill='green'
                                                     ,width=2)
-                self.rect_path_line.append(self.line)
 
     # Single-waypoint selection
     def waypoint_rte(self,event):
-        self.clk_pix_x = event.x                # Recent event variables
-        self.clk_pix_y = event.y
+        x = event.x                # Recent event variables
+        y = event.y
 
-        self.getlat =  ((self.clk_pix_y * (self.MAXLAT - self.MINLAT))/(self.map_height-0)) + self.MINLAT
-        self.getlong = ((self.clk_pix_x * (self.MAXLON -
-            self.MINLON))/(self.map_width-0)) + self.MINLON
+        self.getlong, self.getlat = self.get_l(x, y)
 
-        self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
+        self.clk_arr.append([x, y]) # List of marker pixel locations
         self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
 
         self.rend_mrkrs()
 
     # Rectangle waypoint selection
     def roi_rect_rte(self,event):
-        self.clk_pix_x = event.x                # Recent event variables
-        self.clk_pix_y = event.y
+        x = event.x                # Recent event variables
+        y = event.y
 
-        self.getlat =  ((self.clk_pix_y * (self.MAXLAT - self.MINLAT))/(self.map_height-0)) + self.MINLAT
-        self.getlong = ((self.clk_pix_x * (self.MAXLON -
-            self.MINLON))/(self.map_width-0)) + self.MINLON
+        self.getlong, self.getlat = self.get_l(x, y)
 
         if(len(self.clk_arr) < 2):
-            self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
+            self.clk_arr.append([x, y]) # List of marker pixel locations
             self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
             if(len(self.clk_arr) == 2):
                 self.vrtx_x0_0   = self.pix_gps_coor[0][0]
@@ -623,8 +474,10 @@ class DCMainApp(object):
                 self.gps_vrtcs.append([self.vrtx_x1_0,self.vrtx_y1_0])
                 self.gps_vrtcs.append([self.vrtx_x1_1,self.vrtx_y1_1])
 
+                self.clk_arr.clear()
                 self.rend_rect_mrkrs()
                 self.navigator.gen_waypnts(self.gps_vrtcs)
+                self.rend_rect_path()
 
     # Determine selection mode
     def route_selctn(self):
@@ -640,7 +493,6 @@ class DCMainApp(object):
         self.clk_arr = []
         self.pix_gps_coor = []
         self.gps_vrtcs = []
-        self.gen_waypnts_arr = []
         self.testarr = []
 
         for mrkr in range(len(self.mrkr_list)):
@@ -649,13 +501,9 @@ class DCMainApp(object):
         for line in range(len(self.rect_line)):
             self.maparea.delete(self.rect_line[line])
         self.rect_line = []
-        for path in range(len(self.rect_path_line)):
-            self.maparea.delete(self.rect_path_line[path])
-        for obj in range(len(self.navigator.waypoints)):
-            self.navigator.waypoints.pop()
 
         self.gps_vrtcs = []
-        self.navigator.gen_waypnts(self.gps_vrtcs)
+        self.navigator.waypoints.clear()
         self.navigator.next_tar()
 
         print ">>> Route removed"
@@ -716,7 +564,6 @@ class DCMainApp(object):
             self.rend_wypnt_path()
         elif(self.rte_selctn_var.get()==2):
             print ">>> Map Drone ROI Route"
-            self.rend_rect_path()
         print ">>> Drone Beginning Route"
 
     # Debugging button functions
@@ -738,13 +585,6 @@ class DCMainApp(object):
 
     # Connection button
     def d_connect(self):
-        '''gps_targets = [
-                [25.758536, -80.374548], # south ecs parking lot
-                [25.757582, -80.373888], # library entrance
-                [25.758633, -80.372067], # physics lecture
-                [25.759387, -80.376163], # roundabout
-        ]'''
-
         # Initialize drone and navigator objs
         self.drone = Drone()
         self.drone.startup()
