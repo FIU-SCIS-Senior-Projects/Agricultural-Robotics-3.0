@@ -1,5 +1,5 @@
 from threading import Thread, Event
-from math import cos, radians, sin
+from math import cos, radians, sin, atan2
 import numpy as np
 import time
 
@@ -21,7 +21,7 @@ class Drone(object):
                 "altitude":[0.0],
                 "demo":[0.0, 0.0, [0.0, 0.0, 0.0], 0.0, [0.0, 0.0, 0.0]],
                 "gps":self.__home_gps,
-                "magneto":[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                "magneto":[[0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                 "raw_measures":[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                 }
 
@@ -63,7 +63,7 @@ class Drone(object):
     def __pos_update(self):
         print ">>> Position Updater Begun"
         while not self.__shutdown.is_set():
-            hdg = radians(self.NavData["magneto"][0])
+            hdg = atan2(*self.NavData["magneto"][0][:-1])
             rot = np.matrix([
                     [ cos(hdg), sin(hdg), 0.0],
                     [-sin(hdg), cos(hdg), 0.0],
