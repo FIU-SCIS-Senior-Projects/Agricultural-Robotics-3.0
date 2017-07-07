@@ -1,6 +1,7 @@
 from Tkinter import *
 from PIL import Image, ImageTk
 import cv2, math, select, sys, time
+from ps_drone import Drone
 from navigator import Navigator
 from viewer import Camera
 from threading import Event, Thread
@@ -8,11 +9,6 @@ from multiprocessing import Process
 from decimal import Decimal
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
-
-try:
-    from ps_drone import Drone
-except ImportError:
-    from ps_sim import Drone
 
 '''
 D.F.C.-Drone Flight Controller:
