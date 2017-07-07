@@ -140,29 +140,10 @@ class Navigator:
         # Set new stats
         return stats
 
-    def __calc_waypoints(self):
-        """Takes target list, adds shortest route in order to waypoint queue"""
-        # Current position is the first point of the path
-        if self.__tar_gps == None:
-            self.__set_stats()
-            start = self.__stats["gps"]
-        else: start = self.__tar_gps
-        temp_start = start
-
-        # Use NN to find shortest paths, queue targets as they're found
-        while self.__targets:
-            shortest = 1.0e999 # infinity
-            for tar in self.__targets:
-                dist = self.__calc_distance(temp_start, tar)
-                if dist < shortest: shortest, start = dist, tar
-            self.waypoints.append(start)
-            self.__targets.remove(start)
-            temp_start = start
-
     def next_tar(self):
         """Pop the next coordinate from the queue to current target"""
         try: self.__tar_gps = self.waypoints.popleft()
-        except IndexError: self.__tar_gps = self.__home
+        except IndexError: self.__tar_gps = None
 
     def __calc_distance(self, start, finish):
         """Calculate distance to target"""
@@ -261,8 +242,7 @@ class Navigator:
         """
         if reset: del self.__targets[:]
         if interrupt: self.__tar_gps = None
-        for waypoint in waypoints: self.__targets.append(waypoint)
-        self.__calc_waypoints()
+        for waypoint in waypoints: self.waypoints.append(waypoint)
 
     def get_nav(self):
         self.__set_stats()
@@ -437,5 +417,4 @@ class Navigator:
             self.waypoints.clear()
             for waypoint in self.gen_waypnts_arr:
                 self.waypoints.append(waypoint)
-            self.next_tar()
         else: self.gen_waypnts_arr = []
