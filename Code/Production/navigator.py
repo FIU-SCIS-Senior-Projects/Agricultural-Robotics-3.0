@@ -159,7 +159,7 @@ class Navigator:
             self.__targets.remove(start)
             temp_start = start
 
-    def __next_tar(self):
+    def next_tar(self):
         """Pop the next coordinate from the queue to current target"""
         try: self.__tar_gps = self.waypoints.popleft()
         except IndexError: self.__tar_gps = self.__home
@@ -287,7 +287,7 @@ class Navigator:
         if(len(gps_coors) != 0):
             self.range = 6
             # GPS path coordinates
-            self.gen_waypnts_arr = []
+            self.gen_waypnts_arr = deque()
 
             self.rec_vrts_1 = gps_coors[0]
             self.rec_vrts_2 = gps_coors[1]
@@ -434,8 +434,8 @@ class Navigator:
                         self.gen_waypnts_arr.append([self.rec_vrts_3[0], self.temp_lon])
                         self.new_tempvrtx = 0
                         break
-            #TODO duplicated behavior consider for refactor
-            self.waypoints = self.gen_waypnts_arr[:]
-            # Current position is the first point of the path
-            self.__tar_gps == self.waypoints.pop(0)
+            self.waypoints.clear()
+            for waypoint in self.gen_waypnts_arr:
+                self.waypoints.append(waypoint)
+            self.next_tar()
         else: self.gen_waypnts_arr = []
