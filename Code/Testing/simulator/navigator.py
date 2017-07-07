@@ -1,7 +1,8 @@
-import itertools, ps_sim, time, math
+import itertools, ps_drone, time, math
 from threading import Thread
 from collections import deque
 import numpy as np
+from scipy import stats
 np.seterr(divide='ignore', invalid='ignore')
 
 class Navigator:
@@ -46,7 +47,7 @@ class Navigator:
         # Get current GPS for "home" location
         print ">>> Obtaining Home coordinate"
         self.__set_stats()
-        self.__home = self.__stats["gps"]
+        self.__home = list(self.__stats["gps"])
 
         # Done initializing
         print ">>> NAVIGATOR READY"
@@ -75,7 +76,7 @@ class Navigator:
         # Remove outliers
         for stat in stat_lists:
             out.append(list(itertools.compress(
-                stat, self.__is_outlier(np.array(stat)))))
+                stat, self.__not_outlier(np.array(stat)))))
 
         # Check that lists are populated
         for i in range(len(stat_lists)):
@@ -90,7 +91,19 @@ class Navigator:
             except TypeError:
                 self.__stats[stat_names[i]] = float('nan')
 
-    def __is_outlier(self, points, thresh=3.5):
+        # Convert heading from radians w/ 0 as East to degrees w/ 0 as North
+        self.__stats["deg"] = ((-self.__stats["deg"] * 180 / math.pi) + 450) % 360
+
+        # Flight status
+        h_bit = not self.__drone.NavData["demo"][0][2]
+        f_bit = not self.__drone.NavData["demo"][0][3]
+        l_bit = not self.__drone.NavData["demo"][0][4]
+        if h_bit and f_bit: stus = "HOVERING"
+        elif h_bit and l_bit: stus = "FLYING"
+        elif f_bit and l_bit: stus = "LANDED"
+        self.__stats["stus"] = stus
+
+    def __not_outlier(self, points, thresh=3.5):
         """
             Boris Iglewicz and David Hoaglin (1993), "Volume 16: How to Detect and
             Handle Outliers", The ASQC Basic References in Quality Control:
@@ -102,9 +115,9 @@ class Navigator:
         diff = np.sum((points - median)**2, axis=-1)
         diff = np.sqrt(diff)
         med_abs_deviation = np.median(diff)
-        modified_z_score = 0.6745 * diff / med_abs_deviation
+        modified_z_score = 0.6745 * diff / (med_abs_deviation + 1e-10)
 
-        return modified_z_score > thresh
+        return modified_z_score < thresh
 
     def __get_stats(self):
         """Get stats list with human-readable sensor data."""
@@ -129,8 +142,7 @@ class Navigator:
         # Turn magnetometer data into heading (degrees)
         stats["mag"] = self.__drone.NavData["magneto"][0][:-1] # not using z value
         for i in range(len(stats["mag"])): stats["mag"][i] -= self.__mag_avg[i]
-        stats["deg"] = (360 + (-1 * (math.atan2(
-            stats["mag"][1], stats["mag"][0]) * 180) / math.pi)) % 360
+        stats["deg"] = -1 * math.atan2(stats["mag"][1], stats["mag"][0])
 
         # Set new stats
         return stats
@@ -140,7 +152,7 @@ class Navigator:
         # Current position is the first point of the path
         if self.__tar_gps == None:
             self.__set_stats()
-            start = self.__stats["gps"]
+            start = list(self.__stats["gps"])
         else: start = self.__tar_gps
         temp_start = start
 
@@ -154,10 +166,14 @@ class Navigator:
             self.__targets.remove(start)
             temp_start = start
 
-    def __next_tar(self):
+    def next_tar(self):
         """Pop the next coordinate from the queue to current target"""
+        if self.__tar_gps == self.__home or not self.waypoints:
+            self.__tar_gps = None
+            return True
         try: self.__tar_gps = self.waypoints.popleft()
         except IndexError: self.__tar_gps = self.__home
+        return True
 
     def __calc_distance(self, start, finish):
         """Calculate distance to target"""
@@ -218,12 +234,14 @@ class Navigator:
 
     def get_move(self):
         """Perform calculations to get arguments for a drone move"""
-        if self.__tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], 0.0)
+        if self.__tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
         self.__set_stats()
 
         # Get angle of required turn
-        self.__tar_angle = self.__calc_heading(self.__stats["gps"], self.__tar_gps)
-        self.__tar_dist = self.__calc_distance(self.__stats["gps"], self.__tar_gps)
+        self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
+                self.__tar_gps)
+        self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
+                self.__tar_gps)
         angle_diff = self.__drone.angleDiff(
                 self.__stats["deg"], self.__tar_angle)
 
@@ -242,6 +260,32 @@ class Navigator:
         # Return movement list and distance to target
         return ([0.0, move_speed, 0.0, turn_speed], self.__tar_dist)
 
+    def get_move_no_rot(self):
+        """Like get_move(), but no rotation at all; used for single initial
+        heading reading"""
+        # If no target, no movement
+        if self.__tar_gps == None: return ([0.0, 0.0, 0.0, 0.0], -1)
+        self.__set_stats()
+
+        # Calculations for required heading and distance
+        self.__tar_angle = self.__calc_heading(list(self.__stats["gps"]),
+                self.__tar_gps)
+        self.__tar_dist = self.__calc_distance(list(self.__stats["gps"]),
+                self.__tar_gps)
+
+        print self.__tar_angle
+        # Begin movement toward target with fractions of full speed
+        move_lft = math.sin(np.radians(self.__tar_angle)) * self.__DEF_SPD
+        move_fwd = math.cos(np.radians(self.__tar_angle)) * self.__DEF_SPD
+        return ([move_lft, move_fwd, 0.0, 0.0], self.__tar_dist)
+
+    def set_heading(self, heading):
+        """Turns the drone to target heading"""
+        samples = np.array()
+        for i in range(5):
+            samples.append(self.get_nav()["deg"])
+            time.sleep(1)
+
     def mod_waypoints(self, waypoints, reset = False, interrupt = False):
         """ waypoints: list of iterables, [0]:lat [1]:lon
 
@@ -254,7 +298,7 @@ class Navigator:
             Setting "interrupt" to True will clear the current
             target, forcing a recalculation of next target.
         """
-        if reset: del self.__targets[:]
+        if reset: del self.waypoints[:]
         if interrupt: self.__tar_gps = None
         for waypoint in waypoints: self.__targets.append(waypoint)
         self.__calc_waypoints()
@@ -265,6 +309,9 @@ class Navigator:
 
     def get_home(self):
         return self.__home
+
+    def set_curr(self, new_curr):
+        self.__stats["gps"] = new_curr
 
     def set_home(self, new_home):
         self.__home = new_home
