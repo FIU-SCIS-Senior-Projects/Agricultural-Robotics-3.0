@@ -57,6 +57,7 @@ class DCMainApp(object):
         self.rect_line = []
         self.gps_vrtcs = []
         self.testarr = []
+        self.lines = []
 
         # Radiobutton variable
         self.rte_selctn_var = tk.IntVar()
@@ -340,15 +341,28 @@ class DCMainApp(object):
                 state=tk.NORMAL)
         self.root.after(900, self.act_drone_loc)
 
-    def rend_mrkrs(self):
-        self.map_mrkrs = self.maparea.create_image(self.clk_pix_x,self.clk_pix_y-14
+    def rend_mrkrs(self, x, y):
+        self.map_mrkrs = self.maparea.create_image(x, y - 14
                                                                  ,image=self.map_drone_mrkr
                                                                  , state=tk.NORMAL) # Draw marker
 
-        self.getlong, self.getlat = self.get_l(self.clk_pix_x, self.clk_pix_y)
-
-        self.navigator.mod_waypoints([self.getlat, self.getlong])
+        self.getlong, self.getlat = self.get_l(x, y)
+        self.navigator.mod_waypoints([[self.getlat, self.getlong]])
         self.mrkr_list.append(self.map_mrkrs)
+
+    def rend_path(self):
+        curr_lat = self.navigator.get_nav()["gps"][0]
+        curr_lon = self.navigator.get_nav()["gps"][1]
+        curr_px, curr_py = self.get_p(curr_lat, curr_lon)
+
+        for point in self.navigator.waypoints:
+            next_px, next_py = self.get_p(*point)
+            line = self.maparea.create_line(
+                    curr_px, curr_py,
+                    next_px, next_py,
+                    fill = 'green', width = 2)
+            self.lines.append(line)
+            curr_px, curr_py = next_px, next_py
 
     def rend_wypnt_path(self):
         curr_lat = self.navigator.get_nav()["gps"][0]
@@ -371,6 +385,7 @@ class DCMainApp(object):
                 curr_px = new_px
                 curr_py = new_py
                 self.rect_line.append(line)
+                self.lines.append(line)
 
     def rend_rect_mrkrs(self):
         self.vrtx_x0_0   = self.clk_arr[0][0]
@@ -402,6 +417,7 @@ class DCMainApp(object):
                                                           ,state=tk.NORMAL) # Draw marker
                 self.mrkr_list.append(self.map_mrkrs)
                 self.rect_line.append(line)
+                self.lines.append(line)
             elif(vertex == len(self.testarr)-1):
                 line = self.maparea.create_line(self.testarr[vertex][0]
                                                     ,self.testarr[vertex][1]
@@ -415,6 +431,7 @@ class DCMainApp(object):
                                                           ,state=tk.NORMAL) # Draw marker
                 self.mrkr_list.append(self.map_mrkrs)
                 self.rect_line.append(line)
+                self.lines.append(line)
                 #self.rend_rect_path()
 
     def rend_rect_path(self):
@@ -427,6 +444,7 @@ class DCMainApp(object):
                                                     ,self.navigator.waypoints[edge + 1][0]
                                                     ,fill='green'
                                                     ,width=2)
+                self.lines.append(line)
 
             elif(edge == len(self.navigator.waypoints)):
                 line = self.maparea.create_line(self.navigator.waypoints[edge-1][1]
@@ -435,6 +453,7 @@ class DCMainApp(object):
                                                     ,self.navigator.waypoints[edge][0]
                                                     ,fill='green'
                                                     ,width=2)
+                self.lines.append(line)
 
     # Single-waypoint selection
     def waypoint_rte(self,event):
@@ -442,11 +461,13 @@ class DCMainApp(object):
         y = event.y
 
         self.getlong, self.getlat = self.get_l(x, y)
+        self.navigator.mod_waypoints([[self.getlat, self.getlong]])
 
         self.clk_arr.append([x, y]) # List of marker pixel locations
         self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
 
-        self.rend_mrkrs()
+        self.rend_mrkrs(x, y)
+        self.rend_path()
 
     # Rectangle waypoint selection
     def roi_rect_rte(self,event):
@@ -458,6 +479,7 @@ class DCMainApp(object):
         if(len(self.clk_arr) < 2):
             self.clk_arr.append([x, y]) # List of marker pixel locations
             self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
+
             if(len(self.clk_arr) == 2):
                 self.vrtx_x0_0   = self.pix_gps_coor[0][0]
                 self.vrtx_y0_0   = self.pix_gps_coor[0][1]
@@ -474,10 +496,11 @@ class DCMainApp(object):
                 self.gps_vrtcs.append([self.vrtx_x1_0,self.vrtx_y1_0])
                 self.gps_vrtcs.append([self.vrtx_x1_1,self.vrtx_y1_1])
 
-                self.clk_arr.clear()
                 self.rend_rect_mrkrs()
                 self.navigator.gen_waypnts(self.gps_vrtcs)
-                self.rend_rect_path()
+                #self.rend_rect_path()
+                self.rend_path()
+                self.clk_arr = []
 
     # Determine selection mode
     def route_selctn(self):
@@ -500,7 +523,10 @@ class DCMainApp(object):
         self.mrkr_list = []
         for line in range(len(self.rect_line)):
             self.maparea.delete(self.rect_line[line])
+        for line in self.lines:
+            self.maparea.delete(line)
         self.rect_line = []
+        self.lines = []
 
         self.gps_vrtcs = []
         self.navigator.waypoints.clear()
@@ -561,7 +587,7 @@ class DCMainApp(object):
     def lnch_route(self):
         if(self.rte_selctn_var.get() == 1):
             print ">>> Map Drone Waypoints Route"
-            self.rend_wypnt_path()
+            #self.rend_wypnt_path()
         elif(self.rte_selctn_var.get()==2):
             print ">>> Map Drone ROI Route"
         print ">>> Drone Beginning Route"
