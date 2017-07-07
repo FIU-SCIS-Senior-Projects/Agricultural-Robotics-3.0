@@ -473,11 +473,30 @@ class DCMainApp(object):
         self.drone.moveDown()
 
     def lnch_route(self):
-        if(self.rte_selctn_var.get() == 1):
-            print ">>> Map Drone Waypoints Route"
-        elif(self.rte_selctn_var.get()==2):
-            print ">>> Map Drone ROI Route"
-        print ">>> Drone Beginning Route"
+        print ">>>Drone Beginning Route"
+        moving = Thread(target=self.nav_waypoints, args=())
+        moving.daemon = True
+        moving.start()
+
+    def nav_waypoints(self):
+        thresh = 2.0
+        self.navigator.next_tar()
+        movement, dist = self.navigator.get_move_no_rot()
+        if dist != -1:
+            self.controller_manual.clear()
+            self.drone.takeoff()
+            time.sleep(5)
+        while (dist != -1) and not self.controller_manual.is_set():
+            while (dist > thresh) and not self.controller_manual.is_set():
+                self.drone.move(*movement)
+                print "self.drone.move({})".format(movement)
+                time.sleep(0.5)
+                movement, dist = self.navigator.get_move_no_rot()
+            self.navigator.next_tar()
+            movement, dist = self.navigator.get_move_no_rot()
+        self.controller_manual.set()
+        self.drone.land()
+        return True
 
     # Debugging button functions
     def d_blue(self):
