@@ -56,10 +56,10 @@ class DCMainApp(object):
         self.control_width_per = 1.0 - self.sensor_width_per
         self.stat_refresh = 200 # ms
 
-        self.map_image   = Image.open("staticmap_road.png")# updated variables
-        self.drone_image = Image.open("AR3_0drone.gif")
-        self.drone_loc   = Image.open("drone_mrkr.gif")
-        self.bound_err   = Image.open("o_o_ran.gif")
+        self.map_image   = Image.open("images/map.png")# updated variables
+        self.drone_image = Image.open("images/drone.gif")
+        self.drone_loc   = Image.open("images/marker.gif")
+        self.bound_err   = Image.open("images/offscreen.gif")
         # Static map image display resolution is 640 x 400 with zoom level 19.
         # Future maps may be stored as a database of 640 x 400, zoom 19, map tiles
         # which the drone user may select.
