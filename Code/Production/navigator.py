@@ -98,7 +98,7 @@ class Navigator:
         h_bit = not self.__drone.NavData["demo"][0][2]
         f_bit = not self.__drone.NavData["demo"][0][3]
         l_bit = not self.__drone.NavData["demo"][0][4]
-        if h_bit and f_bit: stus = "HOVERING"
+        if h_bit and f_bit:   stus = "HOVERING"
         elif h_bit and l_bit: stus = "FLYING"
         elif f_bit and l_bit: stus = "LANDED"
         self.__stats["stus"] = stus

@@ -489,7 +489,7 @@ class DCMainApp(object):
         while (dist != -1) and not self.controller_manual.is_set():
             while (dist > thresh) and not self.controller_manual.is_set():
                 self.drone.move(*movement)
-                #print "self.drone.move({})".format(movement)
+                print "self.drone.move({})".format(movement)
                 time.sleep(0.5)
                 movement, dist = self.navigator.get_move_no_rot()
             self.navigator.next_tar()
