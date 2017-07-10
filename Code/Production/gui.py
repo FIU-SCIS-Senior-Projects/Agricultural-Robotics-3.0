@@ -288,7 +288,7 @@ class DCMainApp(object):
 
     def stastat(self):
         stadis = self.sensor_objs_names.index("stadis")
-        staDisplay = "{}".format(self.get_nav()["stus"])
+        staDisplay = "{}".format(self.navigator.get_nav()["stus"])
     	self.sensor_objs[stadis].config(text=staDisplay)
     	self.root.after(self.stat_refresh, self.stastat)
 
@@ -489,11 +489,13 @@ class DCMainApp(object):
         while (dist != -1) and not self.controller_manual.is_set():
             while (dist > thresh) and not self.controller_manual.is_set():
                 self.drone.move(*movement)
-                print "self.drone.move({})".format(movement)
+                #print "self.drone.move({})".format(movement)
                 time.sleep(0.5)
                 movement, dist = self.navigator.get_move_no_rot()
             self.navigator.next_tar()
             movement, dist = self.navigator.get_move_no_rot()
+            print "Reached point."
+        print "Done with route."
         self.controller_manual.set()
         self.drone.land()
         return True
