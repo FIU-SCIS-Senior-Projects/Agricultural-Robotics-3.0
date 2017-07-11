@@ -38,10 +38,10 @@ class GUI(object):
         self.map_image   = Image.open("images/map_image.png")
         self.drone_image = Image.open("images_drone_img.gif")
         self.drone_loc   = Image.open("images/drone_loc.gif")
-        self.MINLAT  =  25.759510   # Upper bound staticmap image latitude
-        self.MINLON  = -80.375419   # Lower bound staticmap image longitude
-        self.MAXLAT  =  25.758544   # Lower bound staticmap image latitude
-        self.MAXLON  = -80.373815   # Upper bound staticmap image longitude
+        self.MINLAT  =  25.759510   # latitude of top of map
+        self.MAXLAT  =  25.758544   # latitude of bottom of map
+        self.MINLON  = -80.375419   # longitude of left side of map
+        self.MAXLON  = -80.373815   # longitude of right side of map
 
         # Pixel map click function
         self.clk_arr = []
