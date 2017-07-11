@@ -39,8 +39,6 @@ class GUI(object):
         self.drone_image = Image.open("AR3_0drone.gif")
         self.drone_loc   = Image.open("drone_mrkr.gif")
         self.bound_err   = Image.open("o_o_ran.gif")
-        self.LAT     =  25.759027   # Center latitude of staticmap image
-        self.LON     = -80.374598   # Center longitude of staticmap image
         self.MINLAT  =  25.759510   # Upper bound staticmap image latitude
         self.MINLON  = -80.375419   # Lower bound staticmap image longitude
         self.MAXLAT  =  25.758544   # Lower bound staticmap image latitude
