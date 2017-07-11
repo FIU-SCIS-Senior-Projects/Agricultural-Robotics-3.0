@@ -35,13 +35,17 @@ class GUI(object):
         self.control_color_back = "lightslategrey"
         self.sensor_width_per = 0.15
         self.stat_refresh = 200 # ms
-        self.map_image   = Image.open("images/map_image.png")
-        self.drone_image = Image.open("images_drone_img.gif")
-        self.drone_loc   = Image.open("images/drone_loc.gif")
         self.MINLAT  =  25.759510   # latitude of top of map
         self.MAXLAT  =  25.758544   # latitude of bottom of map
         self.MINLON  = -80.375419   # longitude of left side of map
         self.MAXLON  = -80.373815   # longitude of right side of map
+
+        # Images
+        drone_loc      = Image.open("images/drone_loc.gif")
+        drone_image    = Image.open("images_drone_img.gif")
+        self.map_image = Image.open("images/map_image.png")
+        self.map_mrkr  = ImageTk.PhotoImage(drone_loc)
+        self.map_drone = ImageTk.PhotoImage(drone_image)
 
         # Pixel map click function
         self.clk_arr = []
@@ -201,22 +205,19 @@ class GUI(object):
         self.test_button.grid(row=1, column=1)
 
         # Radio buttons
-        self.rad_waypnts = tk.Radiobutton(
+        self.radios = []
+        radio_texts = ["Waypoint", "Rectangle"]
+        for i in range(len(radio_texts)):
+            self.radios.append(tk.RadioButton(
                 self.controllerside,
-                text="Waypoint",
-                variable= self.rte_selctn_var,
-                value=1,command=self.route_selctn)
-        self.rad_waypnts.config(bg=self.control_color_back,state=tk.DISABLED)
-        self.rad_waypnts.grid(row=11,column=0)
-
-        self.rad_roi = tk.Radiobutton(
-                self.controllerside,
-                text="Rectangle",
-                variable=self.rte_selctn_var,
-                value=2,
-                command=self.route_selctn)
-        self.rad_roi.config(bg= self.control_color_back, state=tk.DISABLED)
-        self.rad_roi.grid(row=11,column=1)
+                text = radio_texts[i],
+                variable = self.rte_selctn_var,
+                value = i,
+                command = self.route_selctn))
+            self.radios[i].config(
+                    bg = self.control_color_back,
+                    state = tk.DISABLED)
+            self.radios[i].grid(row = 11, column = i)
 
         # Drone map area
         self.maparea = tk.Canvas(
@@ -226,21 +227,15 @@ class GUI(object):
                 height=self.map_height)
         self.maparea.grid(row=0, column=0)
 
-        self.droneimg = tk.Label(self.controllerside2)
-        self.droneimg.grid(row=0,column=2)
+        self.dr_img = self.maparea.create_image(
+                0, 0,
+                image=self.map_drone,
+                state=tk.HIDDEN)
 
-        self.drone_mrkr = tk.Label(self.controllerside2)
-        self.drone_mrkr.grid(row=0,column=2)
-
-        self.err_img = tk.Label(self.controllerside2)
-        self.err_img.grid(row=0,column=2)
-
-        self.map_loc = ImageTk.PhotoImage(self.map_image)
-        self.map_drone = ImageTk.PhotoImage(self.drone_image)
-        self.map_drone_mrkr = ImageTk.PhotoImage(self.drone_loc)
-
-        self.dr_img = self.maparea.create_image(0,0,image=self.map_drone,state=tk.HIDDEN)
-        self.map_mrkrs = self.maparea.create_image(0,0,image=self.map_drone_mrkr,state=tk.HIDDEN)
+        self.map_mrkrs = self.maparea.create_image(
+                0, 0,
+                image=self.map_mrkr,
+                state=tk.HIDDEN)
 
     # Statistics Labels
     def senActivate(self):
@@ -320,7 +315,8 @@ class GUI(object):
     def render_map(self):
         cent_x = (self.map_width  / 2) + 3
         cent_y = (self.map_height / 2) + 3
-        self.maparea.create_image(cent_x, cent_y, image = self.map_loc)
+        map_loc = ImageTk.PhotoImage(self.map_image)
+        self.maparea.create_image(cent_x, cent_y, image = map_loc)
 
     def act_drone_loc(self):
         self.maparea.delete(self.dr_img)
@@ -335,7 +331,7 @@ class GUI(object):
     def rend_mrkr(self, x, y):
         self.map_mrkrs = self.maparea.create_image(
                 x, y - 14,
-                image=self.map_drone_mrkr,
+                image=self.map_mrkr,
                 state=tk.NORMAL) # Draw marker
         self.mrkrs.append(self.map_mrkrs)
 
