@@ -38,7 +38,6 @@ class GUI(object):
         self.map_image   = Image.open("images/map_image.png")
         self.drone_image = Image.open("images_drone_img.gif")
         self.drone_loc   = Image.open("images/drone_loc.gif")
-        self.bound_err   = Image.open("images/bound_err.gif")
         self.MINLAT  =  25.759510   # Upper bound staticmap image latitude
         self.MINLON  = -80.375419   # Lower bound staticmap image longitude
         self.MAXLAT  =  25.758544   # Lower bound staticmap image latitude
@@ -239,7 +238,6 @@ class GUI(object):
         self.map_loc = ImageTk.PhotoImage(self.map_image)
         self.map_drone = ImageTk.PhotoImage(self.drone_image)
         self.map_drone_mrkr = ImageTk.PhotoImage(self.drone_loc)
-        self.map_b_err = ImageTk.PhotoImage(self.bound_err)
 
         self.dr_img = self.maparea.create_image(0,0,image=self.map_drone,state=tk.HIDDEN)
         self.map_mrkrs = self.maparea.create_image(0,0,image=self.map_drone_mrkr,state=tk.HIDDEN)
