@@ -35,10 +35,10 @@ class GUI(object):
         self.control_color_back = "lightslategrey"
         self.sensor_width_per = 0.15
         self.stat_refresh = 200 # ms
-        self.map_image   = Image.open("staticmap_road.png")
-        self.drone_image = Image.open("AR3_0drone.gif")
-        self.drone_loc   = Image.open("drone_mrkr.gif")
-        self.bound_err   = Image.open("o_o_ran.gif")
+        self.map_image   = Image.open("images/map_image.png")
+        self.drone_image = Image.open("images_drone_img.gif")
+        self.drone_loc   = Image.open("images/drone_loc.gif")
+        self.bound_err   = Image.open("images/bound_err.gif")
         self.MINLAT  =  25.759510   # Upper bound staticmap image latitude
         self.MINLON  = -80.375419   # Lower bound staticmap image longitude
         self.MAXLAT  =  25.758544   # Lower bound staticmap image latitude
