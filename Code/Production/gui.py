@@ -17,7 +17,7 @@ control of the drone eliminating the need to run different
 script through the CLI.
 '''
 
-class DCMainApp(object):
+class GUI(object):
     def __init__(self,root,width,height):
         # Modifiable Constants
         self.map_width  = 640
