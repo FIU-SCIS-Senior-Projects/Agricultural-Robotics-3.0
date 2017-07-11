@@ -147,6 +147,16 @@ class Navigator:
         # Set new stats
         return stats
 
+    def next_tar_warning(self):
+        """Pop the next coordinate from the queue to current target"""
+        print waypoints
+        try: tar = self.waypoints.popleft()
+        except IndexError as e:
+            print e
+            tar = None
+        print tar
+        self.__tar_gps = tar
+
     def next_tar(self):
         """Pop the next coordinate from the queue to current target"""
         try: self.__tar_gps = self.waypoints.popleft()

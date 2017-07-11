@@ -480,7 +480,8 @@ class DCMainApp(object):
 
     def nav_waypoints(self):
         thresh = 2.0
-        self.navigator.next_tar()
+        #self.navigator.next_tar()
+        self.navigator.next_tar_warning()
         movement, dist = self.navigator.get_move_no_rot()
         if dist != -1:
             self.controller_manual.clear()
@@ -492,7 +493,8 @@ class DCMainApp(object):
                 print "self.drone.move({})".format(movement)
                 time.sleep(0.5)
                 movement, dist = self.navigator.get_move_no_rot()
-            self.navigator.next_tar()
+            #self.navigator.next_tar()
+            self.navigator.next_tar_warning()
             movement, dist = self.navigator.get_move_no_rot()
             print "Reached point."
         print "Done with route."
