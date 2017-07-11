@@ -306,16 +306,16 @@ class GUI(object):
 
     # Map drawing
     def get_p(self, lat, lon):
-        """Convert given lat, lon to pixel location on map"""
+        """Convert given lat, lon to pixel components"""
         px = ((lon - self.MINLON) / (self.MAXLON - self.MINLON)) * self.map_width
         py = ((lat - self.MINLAT) / (self.MAXLAT - self.MINLAT)) * self.map_height
         return px, py
 
     def get_l(self, px, py):
-        """Convert given pixel location to lat, lon on map"""
+        """Convert given pixel location to gps coordinate"""
         lat = (py * (self.MAXLAT - self.MINLAT) / self.map_height) + self.MINLAT
         lon = (px * (self.MAXLON - self.MINLON) / self.map_width) + self.MINLON
-        return lon, lat
+        return [lat, lon]
 
     def render_map(self):
         cent_mapx = (self.map_width/2) + 3
@@ -357,31 +357,28 @@ class GUI(object):
 
     def select_rte(self,event):
         mode = self.rte_selctn_var.get()
-        x = event.x                # Recent event variables
-        y = event.y
-        self.getlong, self.getlat = self.get_l(x, y)
+        x, y = event.x, event.y
+        coord = self.get_l(x, y)
 
         if mode == 1:   # single-waypoint
-            self.navigator.mod_waypoints([[self.getlat, self.getlong]])
+            self.navigator.mod_waypoints([[coord])
             self.rend_mrkr(x, y)
             self.rend_path()
+
         elif mode == 2: # rect-waypoint
-            if(len(self.clk_arr) < 2):
-                self.clk_arr.append([x, y]) # List of marker pixel locations
-
+            self.clk_arr.append([x, y])
             if(len(self.clk_arr) == 2):
-                a_lon, a_lat = self.get_l(*self.clk_arr[0])
-                b_lon, b_lat = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
-                c_lon, c_lat = self.get_l(*self.clk_arr[1])
-                d_lon, d_lat = self.get_l(self.clk_arr[0][0], self.clk_arr[1][1])
-                a = [a_lat, a_lon]
-                b = [b_lat, b_lon]
-                c = [c_lat, c_lon]
-                d = [d_lat, d_lon]
+                self.send_box()
 
-                self.navigator.gen_waypnts([a, b, c, d])
-                self.rend_path()
-                self.clk_arr = []
+    def send_box(self):
+        a = self.get_l(*self.clk_arr[0])
+        c = self.get_l(*self.clk_arr[1])
+        b = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
+        d = self.get_l(self.clk_arr[0][0], self.clk_arr[1][1])
+
+        self.navigator.gen_waypnts([a, b, c, d])
+        self.rend_path()
+        self.clk_arr = []
 
     # Determine selection mode
     def route_selctn(self):
