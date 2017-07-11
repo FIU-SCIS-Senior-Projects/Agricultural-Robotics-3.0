@@ -49,8 +49,10 @@ class GUI(object):
 
         # Map marker List
         self.mrkrs = []
-        self.testarr = []
         self.lines = []
+
+        # Lists that are cleared on 'clear route'
+        self.clearables = [self.mrkrs, self.lines, self.clk_arr]
 
         # Radiobutton variable
         self.rte_selctn_var = tk.IntVar()
@@ -318,20 +320,18 @@ class GUI(object):
         return [lat, lon]
 
     def render_map(self):
-        cent_mapx = (self.map_width/2) + 3
-        cent_mapy = (self.map_height/2) + 3
-        self.loc = self.maparea.create_image(cent_mapx,cent_mapy,image=self.map_loc)
+        cent_x = (self.map_width  / 2) + 3
+        cent_y = (self.map_height / 2) + 3
+        self.maparea.create_image(cent_x, cent_y, image = self.map_loc)
 
     def act_drone_loc(self):
         self.maparea.delete(self.dr_img)
-        curr_lat = self.navigator.get_nav()["gps"][0]
-        curr_lon = self.navigator.get_nav()["gps"][1]
-        curr_px, curr_py = self.get_p(curr_lat, curr_lon)
+        curr_gps = self.navigator.get_nav()["gps"]
+        curr_px, curr_py = self.get_p(*curr_gps)
         self.dr_img = self.maparea.create_image(
-                curr_px,
-                curr_py,
-                image=self.map_drone,
-                state=tk.NORMAL)
+                curr_px, curr_py,
+                image = self.map_drone,
+                state = tk.NORMAL)
         self.root.after(900, self.act_drone_loc)
 
     def rend_mrkr(self, x, y):
@@ -342,9 +342,8 @@ class GUI(object):
         self.mrkrs.append(self.map_mrkrs)
 
     def rend_path(self):
-        curr_lat = self.navigator.get_nav()["gps"][0]
-        curr_lon = self.navigator.get_nav()["gps"][1]
-        curr_px, curr_py = self.get_p(curr_lat, curr_lon)
+        curr_gps = self.navigator.get_nav()["gps"]
+        curr_px, curr_py = self.get_p(*curr_gps)
 
         for point in self.navigator.waypoints:
             next_px, next_py = self.get_p(*point)
@@ -367,8 +366,9 @@ class GUI(object):
 
         elif mode == 2: # rect-waypoint
             self.clk_arr.append([x, y])
-            if(len(self.clk_arr) == 2):
-                self.send_box()
+            if len(self.clk_arr) == 2: self.send_box()
+
+        else: pass # bad mode?
 
     def send_box(self):
         a = self.get_l(*self.clk_arr[0])
@@ -387,15 +387,9 @@ class GUI(object):
 
     # Remove selections and clear navigator waypoints
     def clear_slctns(self):
-        for mrkr in self.mrkrs:
-            self.maparea.delete(mrkr)
-        for line in self.lines:
-            self.maparea.delete(line)
-
-        self.mrkrs   = []
-        self.lines   = []
-        self.clk_arr = []
-        self.testarr = []
+        for mrkr in self.mrkrs: self.maparea.delete(mrkr)
+        for line in self.lines: self.maparea.delete(line)
+        for arr in self.clearables: arr = []
         self.navigator.waypoints.clear()
         self.navigator.next_tar()
 
