@@ -387,16 +387,15 @@ class GUI(object):
 
     # Remove selections and clear navigator waypoints
     def clear_slctns(self):
-        self.clk_arr = []
-        self.testarr = []
-
-        for mrkr in range(len(self.mrkrs)):
-            self.maparea.delete(self.mrkrs[mrkr])
-        self.mrkrs = []
+        for mrkr in self.mrkrs:
+            self.maparea.delete(mrkr)
         for line in self.lines:
             self.maparea.delete(line)
-        self.lines = []
 
+        self.mrkrs   = []
+        self.lines   = []
+        self.clk_arr = []
+        self.testarr = []
         self.navigator.waypoints.clear()
         self.navigator.next_tar()
 
@@ -463,16 +462,6 @@ class GUI(object):
 
     def d_test(self):
         return None
-
-    def d_calibrate_simple(self):
-        self.navigator.calibrate_drone()
-
-    def d_calibrate_all(self):
-        self.navigator.calibrate_drone(True)
-
-    def d_res_nav(self):
-        print "NoNavData: {}".format(self.drone.NoNavData)
-        self.drone.reconnectNavData()
 
     # Connection button
     def d_connect(self):
