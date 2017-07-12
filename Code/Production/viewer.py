@@ -1,4 +1,4 @@
-import cv2, time
+import cv2
 import numpy as np
 from threading import Thread
 
@@ -34,8 +34,6 @@ class Camera:
         self.__colors = False
         self.__color_def = [    # BGR vals
                 np.uint8([[[255,   0,   0]]]),  # blue
-                #np.uint8([[[  0, 255,   0]]]),  # green
-                #np.uint8([[[  0,   0, 255]]]),  # red
                 ]
         self.__color_ranges = []
         self.__get_hsv()
@@ -76,8 +74,8 @@ class Camera:
         while(not self.__CAM_EVENT.is_set()):
             ret, frame = self.__capture.read()
             while not ret: ret, frame = self.__capture.read()
-            try: frame[:,:]  # some erroneous frame detection
-            except: continue # in case a bad image gets through
+            try: frame[:,:]  # some erroneous frame detection in
+            except: continue #  case a bad image gets through
             self.__currentFrame = frame
 
     def getFrame(self):
