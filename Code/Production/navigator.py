@@ -19,16 +19,15 @@ class Navigator:
         self.__SAMP_TIME = 0.005
 
         # Default (invalid) field values
-        self.__mag_avg = [-14, 13] # Manually calculated
+        self.__mag_avg = [-14, 13] # Manually calculated normalization of magnetometer x,y
         self.__mag_acc = 6  # Points to record during calibration
-        self.__samples = deque(maxlen = self.__SAMP_NUM) # Sample queue
+        self.__samples = deque(maxlen = self.__SAMP_NUM) # Sampling queue
         self.__targets = [] # Target list
         self.waypoints = deque() # Waypoint Queue
         self.__tar_gps = None # Next target's gps coordinate
         self.__tar_dist = 0.0
         self.__tar_angle = 0.0
         self.__stats = {}   # Stats dict
-        self.stus = []
 
         # Initialize sensor data transmissions
         print ">>> Initializing NavData"
@@ -68,10 +67,6 @@ class Navigator:
         stat_names = ["vel", "acc", "gyr", "gps", "alt", "mag", "deg", "pry", "mfu"]
         stat_lists = [ vel,   acc,   gyr,   gps,   alt,   mag,   deg ,  pry ,  mfu ]
 
-        if(not self.__drone.NavData["demo"][0][2] and not self.__drone.NavData["demo"][0][3]): self.stus = "HOVERING"
-        elif(not self.__drone.NavData["demo"][0][2] and not self.__drone.NavData["demo"][0][4]): self.stus = "FLYING"
-        elif(not self.__drone.NavData["demo"][0][3] and not self.__drone.NavData["demo"][0][4]): self.stus = "LANDED"
-
         # Build lists to be analyzed
         for item in list(self.__samples):
             for i in range(len(stat_names)):
@@ -94,6 +89,16 @@ class Navigator:
                         ) / len(stat_lists[i])
             except TypeError:
                 self.__stats[stat_names[i]] = float('nan')
+
+        dem_0 = self.__drone.NavData["demo"][0]
+        h_bit = not dem_0[2]
+        f_bit = not dem_0[3]
+        l_bit = not dem_0[4]
+        if   h_bit and f_bit: stus = "HOVERING"
+        elif h_bit and l_bit: stus = "FLYING"
+        elif f_bit and l_bit: stus = "LANDED"
+        else: stus = "NONE"
+        self.__stats["stus"] = stus
 
     def __is_outlier(self, points, thresh=3.5):
         """
