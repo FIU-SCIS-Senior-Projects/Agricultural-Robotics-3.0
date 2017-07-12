@@ -351,7 +351,7 @@ class GUI(object):
         curr_px, curr_py = self.get_p(*curr_gps)
 
         for point in self.navigator.waypoints:
-            next_px, next_py = self.get_l(*point)
+            next_px, next_py = self.get_p(*point)
             line = self.maparea.create_line(
                     curr_px, curr_py,
                     next_px, next_py,
