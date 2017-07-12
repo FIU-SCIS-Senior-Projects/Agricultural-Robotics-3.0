@@ -237,7 +237,7 @@ class GUI(object):
                 image=self.map_mrkr,
                 state=tk.HIDDEN)
 
-    # Statistics Labels
+    # Statistics Labels - starts sensor data monitoring
     def senActivate(self):
         self.battstat()
         self.altstat()
@@ -246,6 +246,7 @@ class GUI(object):
         self.camstat()
         self.stastat()
 
+    # Monitor functions - run continuously to update sensor data labels
     def battstat(self):
         battdis = self.sensor_objs_names.index("battdis")
         if str(self.drone.getBattery()[1]) != "OK":
@@ -299,7 +300,7 @@ class GUI(object):
     	self.sensor_objs[gpsdis].config(text=gpsDisplay)
     	self.root.after(self.stat_refresh, self.gpsstat)
 
-    # Map drawing
+    # Map drawing functions
     def get_p(self, lat, lon):
         """Convert given lat, lon to pixel components"""
         px = ((lon - self.MINLON) / (self.MAXLON - self.MINLON)) * self.map_width
@@ -313,12 +314,14 @@ class GUI(object):
         return [lat, lon]
 
     def render_map(self):
+        """Puts the map on the GUI"""
         cent_x = (self.map_width  / 2) + 3
         cent_y = (self.map_height / 2) + 3
         map_loc = ImageTk.PhotoImage(self.map_image)
         self.maparea.create_image(cent_x, cent_y, image = map_loc)
 
     def act_drone_loc(self):
+        """Continuously redraws drone icon on its current location"""
         self.maparea.delete(self.dr_img)
         curr_gps = self.navigator.get_nav()["gps"]
         curr_px, curr_py = self.get_p(*curr_gps)
@@ -329,13 +332,15 @@ class GUI(object):
         self.root.after(900, self.act_drone_loc)
 
     def rend_mrkr(self, x, y):
+        """Draws a marker on manually-selected waypoint"""
         self.map_mrkrs = self.maparea.create_image(
                 x, y - 14,
                 image=self.map_mrkr,
-                state=tk.NORMAL) # Draw marker
+                state=tk.NORMAL)
         self.mrkrs.append(self.map_mrkrs)
 
     def rend_path(self):
+        """Draws a line over the route the drone is going to use"""
         curr_gps = self.navigator.get_nav()["gps"]
         curr_px, curr_py = self.get_p(*curr_gps)
 
@@ -348,7 +353,9 @@ class GUI(object):
             self.lines.append(line)
             curr_px, curr_py = next_px, next_py
 
+    # Route-creation functions
     def select_rte(self,event):
+        """Determines how to treat a 'click' on the map"""
         mode = self.rte_selctn_var.get()
         x, y = event.x, event.y
         coord = self.get_l(x, y)
@@ -365,6 +372,8 @@ class GUI(object):
         else: pass # bad mode?
 
     def send_box(self):
+        """Sends vertices of rectangle to navigator to generate
+           a series of waypoints"""
         a = self.get_l(*self.clk_arr[0])
         c = self.get_l(*self.clk_arr[1])
         b = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
@@ -374,21 +383,22 @@ class GUI(object):
         self.rend_path()
         self.clk_arr = []
 
-    # Determine selection mode
     def route_selctn(self):
+        """Performed when the selection mode is changed"""
         self.clear_slctns()
         self.maparea.bind("<Button-1>", self.select_rte)
 
-    # Remove selections and clear navigator waypoints
     def clear_slctns(self):
+        """Resets all waypoint/marker/route line information"""
         for mrkr in self.mrkrs: self.maparea.delete(mrkr)
         for line in self.lines: self.maparea.delete(line)
         for arr in self.clearables: arr = []
         self.navigator.waypoints.clear()
         self.navigator.next_tar()
 
-    # flight functions
-    def take_off(self):
+    # Manual flight functions - these should all include setting
+    #  the controller_manual event to halt autonomous functions
+    def take_off(self): # This is the exception - not necessary
         self.drone.takeoff()
 
     def d_land(self):
@@ -437,6 +447,8 @@ class GUI(object):
         self.controller_manual.set()
         self.drone.moveDown()
 
+    # Autonomous functions - these should all clear the
+    #  controller_manual event so that the functions will run
     def lnch_route(self):
         if(self.rte_selctn_var.get() == 1):
             print ">>> Map Drone Waypoints Route"
@@ -453,7 +465,9 @@ class GUI(object):
 
     # Connection button
     def d_connect(self):
-        # Initialize drone and navigator objs
+        """Initializes drone, navigator, and camera
+           objects, draws the map and its components,
+           and makes available route-selection buttons"""
         self.drone = Drone()
         self.drone.startup()
         self.drone.reset()
@@ -472,11 +486,12 @@ class GUI(object):
 
     # GUI Quit button
     def quit(self):
+        """Halts autonomous movement and cleanly terminates camera thread"""
         self.controller_manual.set()
         self.camera_event.set()
-        if self.drone != None: self.drone.shutdown     # Land drone and discard drone object
         if self.camera != None: self.camera.cam_thread.join()
-        if self.camera != None: self.camera.release()   # Shutdown camera
-        self.root.destroy()     # Discard Main window object
+        if self.camera != None: self.camera.release()
+        if self.drone != None: self.drone.shutdown
+        self.root.destroy() # Discard Main window object
         print "Exiting GUI"
 
