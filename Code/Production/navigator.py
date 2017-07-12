@@ -266,126 +266,54 @@ class Navigator:
         if old_target != None:
             self.mod_waypoints([old_target])
 
-    def __traverse_box_ew(self, max_vrtcs_lon,
-            g_range, gen_waypnts_arr, temp_lat,
-            rec_vrts_3, rec_vrts_1, rec_vrts_2,
-            temp_lon):
+    def __traverse_box_ew(self, vrt_diff, g_range, adj_plus, temp_waypoints,
+            temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon):
         for vrtx in range(g_range):
-            #start vertex -> shortest length -> longest length -> shortest length etc.
-            new_tempvrtx = temp_lon - max_vrtcs_lon
-            if(vrtx % 2 == 0 and vrtx < g_range - 1):
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
+            if adj_plus: temp_lon += vrt_diff
+            else: temp_lon -= vrt_diff
+            vrtx_even = ((vrtx % 2) == 0)
+            if vrtx_even and (vrtx < g_range - 1):
+                temp_waypoints.append([temp_lat, temp_lon])
                 temp_lat = rec_vrts_3[0]
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
-                temp_lon = new_tempvrtx
-                new_tempvrtx = 0
-            elif(vrtx % 2 == 1 and vrtx < g_range -1):
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
+                temp_waypoints.append([temp_lat, temp_lon])
+            elif not vrtx_even and (vrtx < g_range -1):
+                temp_waypoints.append([temp_lat, temp_lon])
                 temp_lat = rec_vrts_1[0]
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
-                temp_lon = new_tempvrtx
-                new_tempvrtx = 0
-            elif(vrtx % 2 == 1 and vrtx == g_range-1):
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
+                temp_waypoints.append([temp_lat, temp_lon])
+            elif not vrtx_even and (vrtx == g_range-1):
+                temp_waypoints.append([temp_lat, temp_lon])
                 temp_lat = rec_vrts_3[0]
-                gen_waypnts_arr.append([temp_lat, rec_vrts_3[1]])
-                new_tempvrtx = 0
+                temp_waypoints.append([temp_lat, temp_lon])
                 break
-            elif(vrtx % 2 == 0 and vrtx == g_range-1):
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
+            elif vrtx_even and (vrtx == g_range-1):
+                temp_waypoints.append([temp_lat, temp_lon])
                 temp_lat = rec_vrts_2[0]
-                gen_waypnts_arr.append([temp_lat, rec_vrts_2[1]])
-                new_tempvrtx = 0
+                temp_waypoints.append([temp_lat, temp_lon])
                 break
 
-    def __traverse_box_we(self, max_vrtcs_lon,
-            g_range, gen_waypnts_arr, temp_lat,
-            rec_vrts_3, rec_vrts_1, rec_vrts_2,
-            temp_lon):
+    def __traverse_box_ns(self, vrt_diff, g_range, adj_plus, temp_waypoints,
+            temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon):
         for vrtx in range(g_range):
-            #start vertex -> shortest length -> longest length -> shortest length etc.
-            new_tempvrtx = temp_lon + max_vrtcs_lon
-            if(vrtx % 2 == 0 and vrtx < g_range - 1):
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
-                temp_lat = rec_vrts_3[0]
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
-                temp_lon = new_tempvrtx
-                new_tempvrtx = 0
-            elif(vrtx % 2 == 1 and vrtx < g_range -1):
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
-                temp_lat = rec_vrts_1[0]
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
-                temp_lon = new_tempvrtx
-                new_tempvrtx = 0
-            elif(vrtx % 2 == 1 and vrtx == g_range-1):
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
-                temp_lat = rec_vrts_3[0]
-                gen_waypnts_arr.append([temp_lat, rec_vrts_3[1]])
-                new_tempvrtx = 0
-                break
-            elif(vrtx % 2 == 0 and vrtx == g_range-1):
-                gen_waypnts_arr.append([temp_lat, new_tempvrtx])
-                temp_lat = rec_vrts_2[0]
-                gen_waypnts_arr.append([temp_lat, rec_vrts_2[1]])
-                new_tempvrtx = 0
-                break
-
-    def __traverse_box_sn(self, max_vrtcs_lat,
-            g_range, gen_waypnts_arr, temp_lat,
-            rec_vrts_3, rec_vrts_1, temp_lon):
-        for vrtx in range(g_range):
-            #start vertex -> shortest length -> longest length -> shortest length etc.
-            new_tempvrtx = temp_lat - max_vrtcs_lat
-            if(vrtx % 2 == 0 and vrtx < g_range - 1):
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
+            if adj_plus: temp_lat += vrt_diff
+            else: temp_lat -= vrt_diff
+            vrtx_even = ((vrtx % 2) == 0)
+            if vrtx_even and (vrtx < g_range - 1):
+                temp_waypoints.append([temp_lat, temp_lon])
                 temp_lon = rec_vrts_3[1]
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
-                temp_lat = new_tempvrtx
-                new_tempvrtx = 0
-            elif(vrtx % 2 == 1 and vrtx < g_range -1):
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
+                temp_waypoints.append([temp_lat, temp_lon])
+            elif not vrtx_even and (vrtx < g_range -1):
+                temp_waypoints.append([temp_lat, temp_lon])
                 temp_lon = rec_vrts_1[1]
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
-                temp_lat = new_tempvrtx
-                new_tempvrtx = 0
-            elif(vrtx % 2 == 1 and vrtx == g_range-1):
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
+                temp_waypoints.append([temp_lat, temp_lon])
+            elif not vrtx_even and (vrtx == g_range-1):
+                temp_waypoints.append([temp_lat, temp_lon])
                 temp_lon = rec_vrts_3[1]
-                gen_waypnts_arr.append([rec_vrts_3[0], temp_lon])
-                new_tempvrtx = 0
+                temp_waypoints.append([temp_lat, temp_lon])
                 break
-            elif(vrtx % 2 == 0 and vrtx == g_range-1):
-                gen_waypnts_arr.append([rec_vrts_3[0], temp_lon])
-                new_tempvrtx = 0
-                break
-
-    def __traverse_box_ns(self, max_vrtcs_lat,
-            g_range, gen_waypnts_arr, temp_lat,
-            rec_vrts_3, rec_vrts_1, temp_lon):
-        for vrtx in range(g_range):
-            #start vertex -> shortest length -> longest length -> shortest length etc.
-            new_tempvrtx = temp_lat + max_vrtcs_lat
-            if(vrtx % 2 == 0 and vrtx < g_range - 1):
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
-                temp_lon = rec_vrts_3[1]
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
-                temp_lat = new_tempvrtx
-                new_tempvrtx = 0
-            elif(vrtx % 2 == 1 and vrtx < g_range -1):
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
-                temp_lon = rec_vrts_1[1]
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
-                temp_lat = new_tempvrtx
-                new_tempvrtx = 0
-            elif(vrtx % 2 == 1 and vrtx == g_range-1):
-                gen_waypnts_arr.append([new_tempvrtx, temp_lon])
-                temp_lon = rec_vrts_3[1]
-                gen_waypnts_arr.append([rec_vrts_3[0], temp_lon])
-                new_tempvrtx = 0
-                break
-            elif(vrtx % 2 == 0 and vrtx == g_range-1):
-                gen_waypnts_arr.append([rec_vrts_3[0], temp_lon])
-                new_tempvrtx = 0
+            elif vrtx_even and (vrtx == g_range-1):
+                temp_waypoints.append([temp_lat, temp_lon])
+                temp_lon = rec_vrts_2[1]
+                temp_waypoints.append([temp_lat, temp_lon])
                 break
 
     def gen_waypnts(self, gps_coors):
@@ -393,75 +321,54 @@ class Navigator:
            calculates a route within the rectangle and populates
            waypoint list with results."""
         if not gps_coors: return True
-
         g_range = 6
+
         # GPS path coordinates
-        gen_waypnts_arr = deque()
+        temp_waypoints = deque()
 
         rec_vrts_1 = gps_coors[0]
         rec_vrts_2 = gps_coors[1]
         rec_vrts_3 = gps_coors[2]
-        rec_vrts_4 = gps_coors[3]
+
+        # E-W/W-E: rect height < rect width; N-S/S-N: rect width < rect height
+        lat_diff = abs(rec_vrts_1[0] - rec_vrts_3[0])
+        lon_diff = abs(rec_vrts_1[1] - rec_vrts_3[1])
+        long_width = lon_diff > lat_diff
+
+        # Did user make left-to-right selection?
+        ltr_lon = rec_vrts_1[1] < rec_vrts_3[1]
+        ltr_lat = rec_vrts_1[0] < rec_vrts_3[0]
+
+        if long_width: vrt_diff = lon_diff / g_range
+        else: vrt_diff = lat_diff / g_range
+        temp_lon = rec_vrts_1[1]
+        temp_lat = rec_vrts_1[0]
+        temp_waypoints.append([temp_lat, temp_lon])
 
         # East to West path orientation
-        if(abs(rec_vrts_1[1] - rec_vrts_3[1]) > abs(rec_vrts_1[0]-rec_vrts_3[0])
-                                and rec_vrts_1[1] > rec_vrts_3[1]):
+        if long_width and not ltr_lon:
             # Generate test waypoints longitudinally
-            max_vrtcs_lon = abs(rec_vrts_1[1] - rec_vrts_3[1])/g_range
-            temp_lon = rec_vrts_1[1]
-            temp_lat = rec_vrts_1[0]
-
-            gen_waypnts_arr.append([temp_lat, temp_lon])
-
-            self.__traverse_box_ew(max_vrtcs_lon,
-                    g_range, gen_waypnts_arr, temp_lat,
-                    rec_vrts_3, rec_vrts_1, rec_vrts_2,
-                    temp_lon)
+            self.__traverse_box_ew(vrt_diff, g_range, False, temp_waypoints,
+                    temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
 
         #West to East path orientation
-        elif(abs(rec_vrts_1[1] - rec_vrts_3[1]) > abs(rec_vrts_1[0]-rec_vrts_3[0])
-                                and rec_vrts_1[1] < rec_vrts_3[1]):
+        elif long_width and ltr_lon:
             # Generate test waypoints longitudinally
-            max_vrtcs_lon = abs(rec_vrts_1[1] - rec_vrts_3[1])/g_range
-            temp_lon = rec_vrts_1[1]
-            temp_lat = rec_vrts_1[0]
-
-            gen_waypnts_arr.append([temp_lat, temp_lon])
-
-            self.__traverse_box_we(max_vrtcs_lon,
-                    g_range, gen_waypnts_arr, temp_lat,
-                    rec_vrts_3, rec_vrts_1, rec_vrts_2,
-                    temp_lon)
+            self.__traverse_box_ew(vrt_diff, g_range, True, temp_waypoints,
+                    temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
 
         # South to North path orientation
-        elif(abs(rec_vrts_1[1] - rec_vrts_3[1]) < abs(rec_vrts_1[0]-rec_vrts_3[0])
-                                and rec_vrts_1[0] > rec_vrts_3[0]):
+        elif not long_width and not ltr_lat:
             # Generate test waypoints longitudinally
-            max_vrtcs_lat = abs(rec_vrts_1[0] - rec_vrts_3[0])/g_range
-            temp_lon = rec_vrts_1[1]
-            temp_lat = rec_vrts_1[0]
-
-            gen_waypnts_arr.append([temp_lat, temp_lon])
-            self.__traverse_box_sn(
-                    max_vrtcs_lat, g_range, gen_waypnts_arr,
-                    temp_lat, rec_vrts_3, rec_vrts_1,
-                    temp_lon)
+            self.__traverse_box_ns(vrt_diff, g_range, False, temp_waypoints,
+                    temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
 
         # North to South path orientation
-        elif(abs(rec_vrts_1[1] - rec_vrts_3[1]) < abs(rec_vrts_1[0]-rec_vrts_3[0])
-                                and rec_vrts_1[0] < rec_vrts_3[0]):
+        elif not long_width and ltr_lat:
             # Generate test waypoints longitudinally
-            max_vrtcs_lat = abs(rec_vrts_1[0] - rec_vrts_3[0])/g_range
-            temp_lon = rec_vrts_1[1]
-            temp_lat = rec_vrts_1[0]
-
-            gen_waypnts_arr.append([temp_lat, temp_lon])
-            self.__traverse_box_ns(
-                    max_vrtcs_lat, g_range, gen_waypnts_arr,
-                    temp_lat, rec_vrts_3, rec_vrts_1,
-                    temp_lon)
+            self.__traverse_box_ns(vrt_diff, g_range, True, temp_waypoints,
+                    temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
 
         self.waypoints.clear()
-
-        for waypoint in gen_waypnts_arr:
+        for waypoint in temp_waypoints:
             self.waypoints.append(waypoint)
