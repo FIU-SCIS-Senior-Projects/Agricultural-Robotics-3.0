@@ -1,4 +1,4 @@
-import cv2, math, select, sys, time
+import cv2, math, os, select, sys, time
 from ps_drone import Drone
 from navigator import Navigator
 from viewer import Camera
@@ -41,9 +41,15 @@ class GUI(object):
         self.MAXLON  = -80.373815   # longitude of right side of map
 
         # Images
-        drone_loc      = Image.open("images/drone_loc.gif")
-        drone_image    = Image.open("images_drone_img.gif")
-        self.map_image = Image.open("images/map_image.png")
+        img_dir     = "images"
+        marker_file = "drone_loc.gif"
+        drone_file  = "drone_img.gif"
+        map_file    = "map_image.png"
+        curr_dir    = os.path.dirname(__file__)
+
+        drone_loc      = Image.open(os.path.join(curr_dir, img_dir, marker_file))
+        drone_image    = Image.open(os.path.join(curr_dir, img_dir, drone_file))
+        self.map_image = Image.open(os.path.join(curr_dir, img_dir, map_file))
         self.map_mrkr  = ImageTk.PhotoImage(drone_loc)
         self.map_drone = ImageTk.PhotoImage(drone_image)
 
@@ -208,7 +214,7 @@ class GUI(object):
         self.radios = []
         radio_texts = ["Waypoint", "Rectangle"]
         for i in range(len(radio_texts)):
-            self.radios.append(tk.RadioButton(
+            self.radios.append(tk.Radiobutton(
                 self.controllerside,
                 text = radio_texts[i],
                 variable = self.rte_selctn_var,
@@ -278,7 +284,7 @@ class GUI(object):
 
     def stastat(self):
         stadis = self.sensor_objs_names.index("stadis")
-        staDisplay = "{}".format(self.navigator.stus)
+        staDisplay = "{}".format(self.navigator.get_nav()["stus"])
     	self.sensor_objs[stadis].config(text=staDisplay)
     	self.root.after(self.stat_refresh, self.stastat)
 
@@ -345,7 +351,7 @@ class GUI(object):
         curr_px, curr_py = self.get_p(*curr_gps)
 
         for point in self.navigator.waypoints:
-            next_px, next_py = self.get_p(*point)
+            next_px, next_py = self.get_l(*point)
             line = self.maparea.create_line(
                     curr_px, curr_py,
                     next_px, next_py,
@@ -360,12 +366,12 @@ class GUI(object):
         x, y = event.x, event.y
         coord = self.get_l(x, y)
 
-        if mode == 1:   # single-waypoint
-            self.navigator.mod_waypoints([[coord])
+        if mode == 0:   # single-waypoint
+            self.navigator.mod_waypoints([coord])
             self.rend_mrkr(x, y)
             self.rend_path()
 
-        elif mode == 2: # rect-waypoint
+        elif mode == 1: # rect-waypoint
             self.clk_arr.append([x, y])
             if len(self.clk_arr) == 2: self.send_box()
 
@@ -481,8 +487,8 @@ class GUI(object):
         self.senActivate()
         self.render_map()
         self.act_drone_loc()
-        self.rad_waypnts.config(bg= self.control_color_back,state=tk.NORMAL)
-        self.rad_roi.config(bg= self.control_color_back, state=tk.NORMAL)
+        for radio in self.radios:
+            radio.config(bg= self.control_color_back,state=tk.NORMAL)
 
     # GUI Quit button
     def quit(self):
