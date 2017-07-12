@@ -45,13 +45,14 @@ class GUI(object):
         marker_file = "drone_loc.gif"
         drone_file  = "drone_img.gif"
         map_file    = "map_image.png"
-        curr_dir    = os.path.dirname(__file__)
 
-        drone_loc      = Image.open(os.path.join(curr_dir, img_dir, marker_file))
-        drone_image    = Image.open(os.path.join(curr_dir, img_dir, drone_file))
-        self.map_image = Image.open(os.path.join(curr_dir, img_dir, map_file))
+        drone_loc   = Image.open(os.path.join(img_dir, marker_file))
+        drone_image = Image.open(os.path.join(img_dir, drone_file))
+        map_image   = Image.open(os.path.join(img_dir, map_file))
+
         self.map_mrkr  = ImageTk.PhotoImage(drone_loc)
         self.map_drone = ImageTk.PhotoImage(drone_image)
+        self.map_loc   = ImageTk.PhotoImage(map_image)
 
         # Pixel map click function
         self.clk_arr = []
@@ -323,8 +324,7 @@ class GUI(object):
         """Puts the map on the GUI"""
         cent_x = (self.map_width  / 2) + 3
         cent_y = (self.map_height / 2) + 3
-        map_loc = ImageTk.PhotoImage(self.map_image)
-        self.maparea.create_image(cent_x, cent_y, image = map_loc)
+        self.maparea.create_image(cent_x, cent_y, image = self.map_loc)
 
     def act_drone_loc(self):
         """Continuously redraws drone icon on its current location"""
