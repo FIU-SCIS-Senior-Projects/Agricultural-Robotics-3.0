@@ -385,6 +385,7 @@ class GUI(object):
         b = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
         d = self.get_l(self.clk_arr[0][0], self.clk_arr[1][1])
 
+        self.clear_slctns()
         self.navigator.gen_waypnts([a, b, c, d])
         self.rend_path()
         self.clk_arr = []

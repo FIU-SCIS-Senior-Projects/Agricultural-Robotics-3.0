@@ -344,6 +344,7 @@ class Navigator:
         self.__traverse_box(vrt_diff, g_range, is_eastwest, is_ltr, temp_waypoints,
                 temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
 
+        # Clear current waypoints and use new ones
         self.waypoints.clear()
         for waypoint in temp_waypoints:
             self.waypoints.append(waypoint)
