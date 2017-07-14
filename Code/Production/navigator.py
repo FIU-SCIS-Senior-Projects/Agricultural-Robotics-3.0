@@ -266,7 +266,7 @@ class Navigator:
         if old_target != None:
             self.mod_waypoints([old_target])
 
-    def __traverse_box(self, vrt_diff, g_range, is_ew, adj_plus, temp_waypoints,
+    def __traverse_box(self, vrt_diff, g_range, is_ew, is_ltr, temp_waypoints,
             temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon):
         if is_ew:
             vert_1, vert_2, vert_3 = rec_vrts_1[0], rec_vrts_2[0], rec_vrts_3[0]
@@ -275,7 +275,7 @@ class Navigator:
 
         for vrtx in range(g_range):
             vrtx_even = ((vrtx % 2) == 0)
-            if adj_plus:
+            if is_ltr:
                 if is_ew: temp_lon += vrt_diff
                 else: temp_lat += vrt_diff
             else:
@@ -324,41 +324,25 @@ class Navigator:
         # E-W/W-E: rect height < rect width; N-S/S-N: rect width < rect height
         lat_diff = abs(rec_vrts_1[0] - rec_vrts_3[0])
         lon_diff = abs(rec_vrts_1[1] - rec_vrts_3[1])
-        long_width = lon_diff > lat_diff
+        is_eastwest = lon_diff > lat_diff
 
         # Did user make left-to-right selection?
         ltr_lon = rec_vrts_1[1] < rec_vrts_3[1]
         ltr_lat = rec_vrts_1[0] < rec_vrts_3[0]
 
-        if long_width: vrt_diff = lon_diff / g_range
-        else: vrt_diff = lat_diff / g_range
+        if is_eastwest: # East-to-West or West-to-East
+            is_ltr = ltr_lon
+            vrt_diff = lon_diff / g_range
+        else: # North-to-South or South-to-North
+            is_ltr = ltr_lat
+            vrt_diff = lat_diff / g_range
         temp_lon = rec_vrts_1[1]
         temp_lat = rec_vrts_1[0]
         temp_waypoints.append([temp_lat, temp_lon])
 
-        # East to West path orientation
-        if long_width and not ltr_lon:
-            # Generate test waypoints longitudinally
-            self.__traverse_box(vrt_diff, g_range, True, False, temp_waypoints,
-                    temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
-
-        #West to East path orientation
-        elif long_width and ltr_lon:
-            # Generate test waypoints longitudinally
-            self.__traverse_box(vrt_diff, g_range, True, True, temp_waypoints,
-                    temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
-
-        # South to North path orientation
-        elif not long_width and not ltr_lat:
-            # Generate test waypoints longitudinally
-            self.__traverse_box(vrt_diff, g_range, False, False, temp_waypoints,
-                    temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
-
-        # North to South path orientation
-        elif not long_width and ltr_lat:
-            # Generate test waypoints longitudinally
-            self.__traverse_box(vrt_diff, g_range, False, True, temp_waypoints,
-                    temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
+        # Generate waypoints using derived vertices
+        self.__traverse_box(vrt_diff, g_range, is_eastwest, is_ltr, temp_waypoints,
+                temp_lat, rec_vrts_3, rec_vrts_1, rec_vrts_2, temp_lon)
 
         self.waypoints.clear()
         for waypoint in temp_waypoints:
