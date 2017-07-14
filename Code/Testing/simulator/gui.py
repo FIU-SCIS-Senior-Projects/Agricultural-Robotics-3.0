@@ -3,12 +3,12 @@ from PIL import Image, ImageTk
 import cv2, math, select, sys, time
 from ps_sim import Drone
 from navigator import Navigator
+#from viewer import Camera
 from threading import Event, Thread
 from multiprocessing import Process
 from decimal import Decimal
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
-
 
 '''
 D.F.C.-Drone Flight Controller:
@@ -47,7 +47,7 @@ class DCMainApp(object):
         self.button_text_bgrnd = "black"
         self.button_text_face = "Arial"
         self.button_text_size = 10
-        self.button_text_size2 = 12
+        self.button_text_size2 = 9
         self.button_text_style = "bold"
         self.sensor_color_back = "lightgrey"
         self.control_color_back = "lightslategrey"
@@ -127,17 +127,17 @@ class DCMainApp(object):
         cam_img = Image.fromarray(cam_img)
         cam_img = ImageTk.PhotoImage(cam_img)
         self.panel_cam = tk.Label(
-		self.cameraside,
+                self.cameraside,
                 width=self.cam_width,
                 height=self.cam_height,
                 image = cam_img,
-		bg='black')
-	self.panel_cam.cam_img = cam_img
+                bg='black')
+        self.panel_cam.cam_img = cam_img
         self.panel_cam.grid(
                 row=0, column=0,
                 columnspan=30, rowspan=30,
                 sticky=tk.W+tk.N)
-        #self.camera_event = Event()
+        self.camera_event = Event()
 
         # Static GeoMap Container
         self.controllerside2 = tk.Frame(self.root)
@@ -154,7 +154,8 @@ class DCMainApp(object):
                 self.controllerside,
                 text="Blue",
                 highlightbackground=self.control_color_back,
-                command=self.d_blue)
+                command=self.d_blue,
+                state=DISABLED)
         self.blue_button.config(width=self.button_width,font=self.button_text)
         self.blue_button.grid(row=0, column=1)
 
@@ -169,9 +170,10 @@ class DCMainApp(object):
 
         ######################################Batt/Alt/Vel##################################################
         self.sensor_objs = []
-        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis"]
-        self.sensor_label_text = [" ", " ", " ", " "]
-        self.sensor_cols = [1,2,3,4]
+        self.sensor_label_text = []
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "headis", "gpsdis", "stadis"]
+        for name in self.sensor_objs_names: self.sensor_label_text.append(" ")
+        self.sensor_cols = list(range(1,len(self.sensor_objs_names) + 1))
 
         for i in range(len(self.sensor_objs_names)):
             self.sensor_objs.append(tk.Label(
@@ -279,8 +281,10 @@ class DCMainApp(object):
         self.battstat()
         self.altstat()
         self.velstat()
+        self.headingstat()
         self.gpsstat()
         #self.camstat()
+        self.stastat()
 
     def battstat(self):
         battdis = self.sensor_objs_names.index("battdis")
@@ -289,9 +293,8 @@ class DCMainApp(object):
         else:
             self.sensor_objs[battdis].config(fg="purple")
 
-        self.sensor_objs[battdis].config(text="Battery: {}'%' State: {}".format(
-            self.drone.getBattery()[0],
-            self.drone.getBattery()[1]))
+        self.sensor_objs[battdis].config(text="bat: {}%".format(
+            self.drone.getBattery()[0]))
         self.root.after(1000, self.battstat)
 
     def camstat(self):
@@ -304,30 +307,50 @@ class DCMainApp(object):
 
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
-        altDisplay = "Altitude: {}".format(
+        altDisplay = "alt: {}".format(
                 Decimal(
                     self.navigator.get_nav()["alt"]
                     ).quantize(Decimal('0.001')))
         self.sensor_objs[altdis].config(text=altDisplay)
         self.root.after(self.stat_refresh, self.altstat)
 
+    def stastat(self):
+        stadis = self.sensor_objs_names.index("stadis")
+        staDisplay = "{}".format(
+                self.navigator.get_nav()["stus"])
+    	self.sensor_objs[stadis].config(text=staDisplay)
+    	self.root.after(self.stat_refresh, self.stastat)
+
     def velstat(self):
         veldis = self.sensor_objs_names.index("veldis")
-    	velDisplay = "Velocity: {}".format(
+        velDisplay = "vel: {}".format(
                 Decimal(np.hypot(
                     self.navigator.get_nav()["vel"][0],
                     self.navigator.get_nav()["vel"][1])
                     ).quantize(Decimal('0.001')))
-    	self.sensor_objs[veldis].config(text=velDisplay)
-    	self.root.after(self.stat_refresh, self.velstat)
+        self.sensor_objs[veldis].config(text=velDisplay)
+        self.root.after(self.stat_refresh, self.velstat)
 
     def gpsstat(self):
         gpsdis = self.sensor_objs_names.index("gpsdis")
-        gpsDisplay = "Latitude: {}  Longitude: {}".format(
-                self.navigator.get_nav()["gps"][0],
-                self.navigator.get_nav()["gps"][1])
-    	self.sensor_objs[gpsdis].config(text=gpsDisplay)
-    	self.root.after(self.stat_refresh, self.gpsstat)
+        gpsDisplay = "lat: {}  lon: {}".format(
+                Decimal(
+                    self.navigator.get_nav()["gps"][0]
+                    ).quantize(Decimal('0.000001')),
+                Decimal(
+                    self.navigator.get_nav()["gps"][1]
+                    ).quantize(Decimal('0.000001')))
+        self.sensor_objs[gpsdis].config(text=gpsDisplay)
+        self.root.after(self.stat_refresh, self.gpsstat)
+
+    def headingstat(self):
+        headis = self.sensor_objs_names.index("headis")
+        heaDisplay = "hdg: {}".format(
+                Decimal(
+                    self.navigator.get_nav()["deg"]
+                    ).quantize(Decimal('0.01')))
+        self.sensor_objs[headis].config(text=heaDisplay)
+        self.root.after(self.stat_refresh, self.headingstat)
 
     def render_map(self):
         cent_mapx = (self.map_width/2) + 3
@@ -362,7 +385,6 @@ class DCMainApp(object):
         self.waypoints = []
 
     def rend_wypnt_path(self):
-        print self.navigator.waypoints
         curr_px = ((self.navigator.get_nav()["gps"][1] - self.MINLONG)/(self.MAXLONG - self.MINLONG)) * (self.map_width - 0) + 0
         curr_py = ((self.navigator.get_nav()["gps"][0] - self.MINLAT)/(self.MAXLAT - self.MINLAT)) * (self.map_height - 0) + 0
         for path in range(len(self.navigator.waypoints)):
@@ -599,6 +621,7 @@ class DCMainApp(object):
 
         self.getlat =  ((self.clk_pix_y * (self.MAXLAT - self.MINLAT))/(self.map_height-0)) + self.MINLAT
         self.getlong = ((self.clk_pix_x * (self.MAXLONG - self.MINLONG))/(self.map_width-0)) + self.MINLONG
+        print "lat: {}\nlon: {}".format(self.getlat, self.getlong)
 
         self.clk_arr.append([event.x, event.y]) # List of marker pixel locations
         self.pix_gps_coor.append([self.getlat,self.getlong]) #List of GPS locations
@@ -672,7 +695,7 @@ class DCMainApp(object):
         self.gps_vrtcs = []
         self.navigator.gen_waypnts(self.gps_vrtcs)
 
-        print ">>>Route removed"
+        print ">>> Route removed"
 
 
     def take_off(self):
@@ -692,7 +715,7 @@ class DCMainApp(object):
 
     def d_forward(self):
         self.controller_manual.set()
-        #self.drone.moveForward()
+        self.drone.moveForward()
 
     def d_backward(self):
         self.controller_manual.set()
@@ -726,7 +749,7 @@ class DCMainApp(object):
 
     def quit(self):
         self.controller_manual.set()
-        #self.camera_event.set()
+        self.camera_event.set()
         if self.drone != None: self.drone.shutdown     # Land drone and discard drone object
         if self.camera != None: self.camera.cam_thread.join()
         if self.camera != None: self.camera.release()   # Shutdown camera
@@ -787,10 +810,10 @@ class DCMainApp(object):
         move_acc = [ 0.00,  0.15,  0.00,  0.00]
 
         # Begin test
-        #self.drone.takeoff()
+        self.drone.takeoff()
         time.sleep(3)
         start_time = time.time()
-        #self.drone.move(*move_acc)
+        self.drone.move(*move_acc)
         print "self.drone.move({})".format(move_acc)
 
         # TODO
@@ -813,7 +836,7 @@ class DCMainApp(object):
             else:                  move_acc[1]  =  move_def[1]
 
             # Perform movement
-            #self.drone.move(*move_acc)
+            self.drone.move(*move_acc)
             print "self.drone.move({})".format(move_acc)
             time.sleep(1)
 
@@ -822,9 +845,37 @@ class DCMainApp(object):
                 done = True
 
         # Finish with a land
-        #self.drone.land()
+        self.drone.land()
+
+    def nav_waypoints(self):
+        thresh = 2.0
+        self.navigator.next_tar()
+        movement, dist = self.navigator.get_move_no_rot()
+        
+        # Begin test
+        if dist != -1:
+            self.controller_manual.clear()
+            self.drone.takeoff()
+            time.sleep(5)
+        while (dist != -1) and not self.controller_manual.is_set():
+            while (dist > thresh) and not self.controller_manual.is_set():
+                self.drone.move(*movement)
+                print "self.drone.move({})".format(movement)
+                time.sleep(0.5)
+                movement, dist = self.navigator.get_move_no_rot()
+            self.navigator.next_tar()
+            movement, dist = self.navigator.get_move_no_rot()
+        self.controller_manual.set()
+        self.drone.land()
+        return True
 
     # flight buttons
+    def lnch_route(self):
+        print ">>>Drone Beginning Route"
+        moving = Thread(target=self.nav_waypoints, args=())
+        moving.daemon = True
+        moving.start()
+
     def d_smooth(self):
         moving = Thread(target=self.smooth, args=())
         moving.daemon = True
@@ -857,19 +908,11 @@ class DCMainApp(object):
 
     # drone connection button
     def d_connect(self):
-        '''gps_targets = [
-                [25.758536, -80.374548], # south ecs parking lot
-                [25.757582, -80.373888], # library entrance
-                [25.758633, -80.372067], # physics lecture
-                [25.759387, -80.376163], # roundabout
-        ]'''
-
         # Initialize drone and navigator objs
         self.drone = Drone()
         self.drone.startup()
         self.drone.reset()
         self.navigator = Navigator(self.drone)
-        #self.navigator.mod_waypoints(gps_targets, reset=True)
         #self.camera = Camera(
         #        self.drone,
         #        self.cam_width,

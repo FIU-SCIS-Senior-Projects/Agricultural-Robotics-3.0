@@ -35,16 +35,20 @@ class DCMainApp(object):
         self.control_color_back = "lightslategrey"
         self.sensor_width_per = 0.15
         self.stat_refresh = 200 # ms
-        self.map_image   = Image.open("staticmap_road.png")
-        self.drone_image = Image.open("AR3_0drone.gif")
-        self.drone_loc   = Image.open("drone_mrkr.gif")
-        self.bound_err   = Image.open("o_o_ran.gif")
-        self.LAT     =  25.759027   # Center latitude of staticmap image
-        self.LON     = -80.374598   # Center longitude of staticmap image
-        self.MINLAT  =  25.759510   # Upper bound staticmap image latitude
-        self.MINLON  = -80.375419   # Lower bound staticmap image longitude
-        self.MAXLAT  =  25.758544   # Lower bound staticmap image latitude
-        self.MAXLON  = -80.373815   # Upper bound staticmap image longitude
+        self.map_image   = Image.open("images/map.png")# updated variables
+        self.drone_image = Image.open("images/drone.gif")
+        self.drone_loc   = Image.open("images/marker.gif")
+        self.bound_err   = Image.open("images/offscreen.gif")
+        # Static map image display resolution is 640 x 400 with zoom level 19.
+        # Future maps may be stored as a database of 640 x 400, zoom 19, map tiles
+        # which the drone user may select.
+        # Internal storage of map tiles will discard need for an active internet connection.
+        self.LAT    =  25.759027    #Center latitude of staticmap image
+        self.LON    = -80.374598    #Center longitude of staticmap image
+        self.MINLAT =  25.759510    #Upper bound staticmap image latitude
+        self.MINLON = -80.375419    #Lower bound staticmap image longitude
+        self.MAXLAT =  25.758544    #Lower bound staticmap image latitude
+        self.MAXLON = -80.373815    #Upper bound staticmap image longitude
 
         # Pixel map click function
         self.clk_arr = []
@@ -97,12 +101,12 @@ class DCMainApp(object):
         cam_img = Image.fromarray(cam_img)
         cam_img = ImageTk.PhotoImage(cam_img)
         self.panel_cam = tk.Label(
-		self.cameraside,
+                self.cameraside,
                 width=self.cam_width,
                 height=self.cam_height,
                 image = cam_img,
-		bg='black')
-	self.panel_cam.cam_img = cam_img
+                bg='black')
+        self.panel_cam.cam_img = cam_img
         self.panel_cam.grid(
                 row=0, column=0,
                 columnspan=30, rowspan=30,
@@ -117,7 +121,7 @@ class DCMainApp(object):
         # Labels: Batt/Alt/Vel/GPS/Status
         self.sensor_objs = []
         self.sensor_label_text = []
-        self.sensor_objs_names = ["battdis", "altdis", "veldis", "gpsdis", "stadis"]
+        self.sensor_objs_names = ["battdis", "altdis", "veldis", "headis", "gpsdis", "stadis"]
         for name in self.sensor_objs_names: self.sensor_label_text.append(" ")
         self.sensor_cols = range(1, len(self.sensor_objs_names) + 1)
 
@@ -249,6 +253,7 @@ class DCMainApp(object):
         self.battstat()
         self.altstat()
         self.velstat()
+        self.headingstat()
         self.gpsstat()
         self.camstat()
         self.stastat()
@@ -260,9 +265,8 @@ class DCMainApp(object):
         else:
             self.sensor_objs[battdis].config(fg="purple")
 
-        self.sensor_objs[battdis].config(text="Battery: {}'%' State: {}".format(
-            self.drone.getBattery()[0],
-            self.drone.getBattery()[1]))
+        self.sensor_objs[battdis].config(text="bat: {}%".format(
+            self.drone.getBattery()[0]))
         self.root.after(1000, self.battstat)
 
     def camstat(self):
@@ -275,7 +279,7 @@ class DCMainApp(object):
 
     def altstat(self):
         altdis = self.sensor_objs_names.index("altdis")
-        altDisplay = "Altitude: {}".format(
+        altDisplay = "alt: {}".format(
                 Decimal(
                     self.navigator.get_nav()["alt"]
                     ).quantize(Decimal('0.001')))
@@ -284,27 +288,40 @@ class DCMainApp(object):
 
     def stastat(self):
         stadis = self.sensor_objs_names.index("stadis")
-        staDisplay = "{}".format(self.navigator.stus)
+        staDisplay = "{}".format(self.navigator.get_nav()["stus"])
     	self.sensor_objs[stadis].config(text=staDisplay)
     	self.root.after(self.stat_refresh, self.stastat)
 
     def velstat(self):
         veldis = self.sensor_objs_names.index("veldis")
-    	velDisplay = "Velocity: {}".format(
+        velDisplay = "vel: {}".format(
                 Decimal(np.hypot(
                     self.navigator.get_nav()["vel"][0],
                     self.navigator.get_nav()["vel"][1])
                     ).quantize(Decimal('0.001')))
-    	self.sensor_objs[veldis].config(text=velDisplay)
-    	self.root.after(self.stat_refresh, self.velstat)
+        self.sensor_objs[veldis].config(text=velDisplay)
+        self.root.after(self.stat_refresh, self.velstat)
 
     def gpsstat(self):
         gpsdis = self.sensor_objs_names.index("gpsdis")
-        gpsDisplay = "Latitude: {}  Longitude: {}".format(
-                self.navigator.get_nav()["gps"][0],
-                self.navigator.get_nav()["gps"][1])
-    	self.sensor_objs[gpsdis].config(text=gpsDisplay)
-    	self.root.after(self.stat_refresh, self.gpsstat)
+        gpsDisplay = "lat: {}  lon: {}".format(
+                Decimal(
+                    self.navigator.get_nav()["gps"][0]
+                    ).quantize(Decimal('0.000001')),
+                Decimal(
+                    self.navigator.get_nav()["gps"][1]
+                    ).quantize(Decimal('0.000001')))
+        self.sensor_objs[gpsdis].config(text=gpsDisplay)
+        self.root.after(self.stat_refresh, self.gpsstat)
+
+    def headingstat(self):
+        headis = self.sensor_objs_names.index("headis")
+        heaDisplay = "hdg: {}".format(
+                Decimal(
+                    self.navigator.get_nav()["deg"]
+                    ).quantize(Decimal('0.01')))
+        self.sensor_objs[headis].config(text=heaDisplay)
+        self.root.after(self.stat_refresh, self.headingstat)
 
     # Map drawing
     def get_p(self, lat, lon):
@@ -456,11 +473,34 @@ class DCMainApp(object):
         self.drone.moveDown()
 
     def lnch_route(self):
-        if(self.rte_selctn_var.get() == 1):
-            print ">>> Map Drone Waypoints Route"
-        elif(self.rte_selctn_var.get()==2):
-            print ">>> Map Drone ROI Route"
-        print ">>> Drone Beginning Route"
+        print ">>>Drone Beginning Route"
+        moving = Thread(target=self.nav_waypoints, args=())
+        moving.daemon = True
+        moving.start()
+
+    def nav_waypoints(self):
+        thresh = 2.0
+        #self.navigator.next_tar()
+        self.navigator.next_tar_warning()
+        movement, dist = self.navigator.get_move_no_rot()
+        if dist != -1:
+            self.controller_manual.clear()
+            self.drone.takeoff()
+            time.sleep(5)
+        while (dist != -1) and not self.controller_manual.is_set():
+            while (dist > thresh) and not self.controller_manual.is_set():
+                self.drone.move(*movement)
+                print "self.drone.move({})".format(movement)
+                time.sleep(0.5)
+                movement, dist = self.navigator.get_move_no_rot()
+            #self.navigator.next_tar()
+            self.navigator.next_tar_warning()
+            movement, dist = self.navigator.get_move_no_rot()
+            print "Reached point."
+        print "Done with route."
+        self.controller_manual.set()
+        self.drone.land()
+        return True
 
     # Debugging button functions
     def d_blue(self):
