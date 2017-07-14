@@ -1,20 +1,15 @@
-from gui import DCMainApp
-import Tkinter as tk
+from gui import GUI
+from Tkinter import Tk
 
 WIN_WIDTH = 880
 WIN_HEIGHT = 760
 
-
 def main():
-    # Initialize GUI
-    root = tk.Tk()
+    root = Tk()
     root.title("D.F.C. - Drone Flight Controller")
-    root.geometry("{}x{}".format(WIN_WIDTH, WIN_HEIGHT)) #GUI window dimensions
-    drone_GUI = DCMainApp(root, WIN_WIDTH, WIN_HEIGHT)
-
-    # Run GUI
+    root.geometry("{}x{}".format(WIN_WIDTH, WIN_HEIGHT))
+    drone_GUI = GUI(root, WIN_WIDTH, WIN_HEIGHT)
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()

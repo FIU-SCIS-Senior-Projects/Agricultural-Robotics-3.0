@@ -1,4 +1,4 @@
-import cv2, math, select, sys, time
+import cv2, math, os, select, sys, time
 from ps_drone import Drone
 from navigator import Navigator
 from viewer import Camera
@@ -17,7 +17,7 @@ control of the drone eliminating the need to run different
 script through the CLI.
 '''
 
-class DCMainApp(object):
+class GUI(object):
     def __init__(self,root,width,height):
         # Modifiable Constants
         self.map_width  = 640
@@ -35,28 +35,34 @@ class DCMainApp(object):
         self.control_color_back = "lightslategrey"
         self.sensor_width_per = 0.15
         self.stat_refresh = 200 # ms
-        self.map_image   = Image.open("images/map.png")# updated variables
-        self.drone_image = Image.open("images/drone.gif")
-        self.drone_loc   = Image.open("images/marker.gif")
-        self.bound_err   = Image.open("images/offscreen.gif")
-        # Static map image display resolution is 640 x 400 with zoom level 19.
-        # Future maps may be stored as a database of 640 x 400, zoom 19, map tiles
-        # which the drone user may select.
-        # Internal storage of map tiles will discard need for an active internet connection.
-        self.LAT    =  25.759027    #Center latitude of staticmap image
-        self.LON    = -80.374598    #Center longitude of staticmap image
-        self.MINLAT =  25.759510    #Upper bound staticmap image latitude
-        self.MINLON = -80.375419    #Lower bound staticmap image longitude
-        self.MAXLAT =  25.758544    #Lower bound staticmap image latitude
-        self.MAXLON = -80.373815    #Upper bound staticmap image longitude
+        self.MINLAT  =  25.759510   # latitude of top of map
+        self.MAXLAT  =  25.758544   # latitude of bottom of map
+        self.MINLON  = -80.375419   # longitude of left side of map
+        self.MAXLON  = -80.373815   # longitude of right side of map
+
+        # Images
+        img_dir     = "images"
+        marker_file = "drone_loc.gif"
+        drone_file  = "drone_img.gif"
+        map_file    = "map_image.png"
+
+        drone_loc   = Image.open(os.path.join(img_dir, marker_file))
+        drone_image = Image.open(os.path.join(img_dir, drone_file))
+        map_image   = Image.open(os.path.join(img_dir, map_file))
+
+        self.map_mrkr  = ImageTk.PhotoImage(drone_loc)
+        self.map_drone = ImageTk.PhotoImage(drone_image)
+        self.map_loc   = ImageTk.PhotoImage(map_image)
 
         # Pixel map click function
         self.clk_arr = []
 
         # Map marker List
         self.mrkrs = []
-        self.testarr = []
         self.lines = []
+
+        # Lists that are cleared on 'clear route'
+        self.clearables = [self.mrkrs, self.lines, self.clk_arr]
 
         # Radiobutton variable
         self.rte_selctn_var = tk.IntVar()
@@ -206,22 +212,19 @@ class DCMainApp(object):
         self.test_button.grid(row=1, column=1)
 
         # Radio buttons
-        self.rad_waypnts = tk.Radiobutton(
+        self.radios = []
+        radio_texts = ["Waypoint", "Rectangle"]
+        for i in range(len(radio_texts)):
+            self.radios.append(tk.Radiobutton(
                 self.controllerside,
-                text="Waypoint",
-                variable= self.rte_selctn_var,
-                value=1,command=self.route_selctn)
-        self.rad_waypnts.config(bg=self.control_color_back,state=tk.DISABLED)
-        self.rad_waypnts.grid(row=11,column=0)
-
-        self.rad_roi = tk.Radiobutton(
-                self.controllerside,
-                text="Rectangle",
-                variable=self.rte_selctn_var,
-                value=2,
-                command=self.route_selctn)
-        self.rad_roi.config(bg= self.control_color_back, state=tk.DISABLED)
-        self.rad_roi.grid(row=11,column=1)
+                text = radio_texts[i],
+                variable = self.rte_selctn_var,
+                value = i,
+                command = self.route_selctn))
+            self.radios[i].config(
+                    bg = self.control_color_back,
+                    state = tk.DISABLED)
+            self.radios[i].grid(row = 11, column = i)
 
         # Drone map area
         self.maparea = tk.Canvas(
@@ -231,24 +234,17 @@ class DCMainApp(object):
                 height=self.map_height)
         self.maparea.grid(row=0, column=0)
 
-        self.droneimg = tk.Label(self.controllerside2)
-        self.droneimg.grid(row=0,column=2)
+        self.dr_img = self.maparea.create_image(
+                0, 0,
+                image=self.map_drone,
+                state=tk.HIDDEN)
 
-        self.drone_mrkr = tk.Label(self.controllerside2)
-        self.drone_mrkr.grid(row=0,column=2)
+        self.map_mrkrs = self.maparea.create_image(
+                0, 0,
+                image=self.map_mrkr,
+                state=tk.HIDDEN)
 
-        self.err_img = tk.Label(self.controllerside2)
-        self.err_img.grid(row=0,column=2)
-
-        self.map_loc = ImageTk.PhotoImage(self.map_image)
-        self.map_drone = ImageTk.PhotoImage(self.drone_image)
-        self.map_drone_mrkr = ImageTk.PhotoImage(self.drone_loc)
-        self.map_b_err = ImageTk.PhotoImage(self.bound_err)
-
-        self.dr_img = self.maparea.create_image(0,0,image=self.map_drone,state=tk.HIDDEN)
-        self.map_mrkrs = self.maparea.create_image(0,0,image=self.map_drone_mrkr,state=tk.HIDDEN)
-
-    # Statistics Labels
+    # Statistics Labels - starts sensor data monitoring
     def senActivate(self):
         self.battstat()
         self.altstat()
@@ -258,6 +254,7 @@ class DCMainApp(object):
         self.camstat()
         self.stastat()
 
+    # Monitor functions - run continuously to update sensor data labels
     def battstat(self):
         battdis = self.sensor_objs_names.index("battdis")
         if str(self.drone.getBattery()[1]) != "OK":
@@ -323,47 +320,48 @@ class DCMainApp(object):
         self.sensor_objs[headis].config(text=heaDisplay)
         self.root.after(self.stat_refresh, self.headingstat)
 
-    # Map drawing
+    # Map drawing functions
     def get_p(self, lat, lon):
-        """Convert given lat, lon to pixel location on map"""
+        """Convert given lat, lon to pixel components"""
         px = ((lon - self.MINLON) / (self.MAXLON - self.MINLON)) * self.map_width
         py = ((lat - self.MINLAT) / (self.MAXLAT - self.MINLAT)) * self.map_height
         return px, py
 
     def get_l(self, px, py):
-        """Convert given pixel location to lat, lon on map"""
+        """Convert given pixel location to gps coordinate"""
         lat = (py * (self.MAXLAT - self.MINLAT) / self.map_height) + self.MINLAT
         lon = (px * (self.MAXLON - self.MINLON) / self.map_width) + self.MINLON
-        return lon, lat
+        return [lat, lon]
 
     def render_map(self):
-        cent_mapx = (self.map_width/2) + 3
-        cent_mapy = (self.map_height/2) + 3
-        self.loc = self.maparea.create_image(cent_mapx,cent_mapy,image=self.map_loc)
+        """Puts the map on the GUI"""
+        cent_x = (self.map_width  / 2) + 3
+        cent_y = (self.map_height / 2) + 3
+        self.maparea.create_image(cent_x, cent_y, image = self.map_loc)
 
     def act_drone_loc(self):
+        """Continuously redraws drone icon on its current location"""
         self.maparea.delete(self.dr_img)
-        curr_lat = self.navigator.get_nav()["gps"][0]
-        curr_lon = self.navigator.get_nav()["gps"][1]
-        curr_px, curr_py = self.get_p(curr_lat, curr_lon)
+        curr_gps = self.navigator.get_nav()["gps"]
+        curr_px, curr_py = self.get_p(*curr_gps)
         self.dr_img = self.maparea.create_image(
-                curr_px,
-                curr_py,
-                image=self.map_drone,
-                state=tk.NORMAL)
+                curr_px, curr_py,
+                image = self.map_drone,
+                state = tk.NORMAL)
         self.root.after(900, self.act_drone_loc)
 
     def rend_mrkr(self, x, y):
+        """Draws a marker on manually-selected waypoint"""
         self.map_mrkrs = self.maparea.create_image(
                 x, y - 14,
-                image=self.map_drone_mrkr,
-                state=tk.NORMAL) # Draw marker
+                image=self.map_mrkr,
+                state=tk.NORMAL)
         self.mrkrs.append(self.map_mrkrs)
 
     def rend_path(self):
-        curr_lat = self.navigator.get_nav()["gps"][0]
-        curr_lon = self.navigator.get_nav()["gps"][1]
-        curr_px, curr_py = self.get_p(curr_lat, curr_lon)
+        """Draws a line over the route the drone is going to use"""
+        curr_gps = self.navigator.get_nav()["gps"]
+        curr_px, curr_py = self.get_p(*curr_gps)
 
         for point in self.navigator.waypoints:
             next_px, next_py = self.get_p(*point)
@@ -374,56 +372,53 @@ class DCMainApp(object):
             self.lines.append(line)
             curr_px, curr_py = next_px, next_py
 
+    # Route-creation functions
     def select_rte(self,event):
+        """Determines how to treat a 'click' on the map"""
         mode = self.rte_selctn_var.get()
-        x = event.x                # Recent event variables
-        y = event.y
-        self.getlong, self.getlat = self.get_l(x, y)
+        x, y = event.x, event.y
+        coord = self.get_l(x, y)
 
-        if mode == 1:   # single-waypoint
-            self.navigator.mod_waypoints([[self.getlat, self.getlong]])
+        if mode == 0:   # single-waypoint
+            self.navigator.mod_waypoints([coord])
             self.rend_mrkr(x, y)
             self.rend_path()
-        elif mode == 2: # rect-waypoint
-            if(len(self.clk_arr) < 2):
-                self.clk_arr.append([x, y]) # List of marker pixel locations
 
-            if(len(self.clk_arr) == 2):
-                a_lon, a_lat = self.get_l(*self.clk_arr[0])
-                b_lon, b_lat = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
-                c_lon, c_lat = self.get_l(*self.clk_arr[1])
-                d_lon, d_lat = self.get_l(self.clk_arr[0][0], self.clk_arr[1][1])
-                a = [a_lat, a_lon]
-                b = [b_lat, b_lon]
-                c = [c_lat, c_lon]
-                d = [d_lat, d_lon]
+        elif mode == 1: # rect-waypoint
+            self.clk_arr.append([x, y])
+            if len(self.clk_arr) == 2: self.send_box()
 
-                self.navigator.gen_waypnts([a, b, c, d])
-                self.rend_path()
-                self.clk_arr = []
+        else: pass # bad mode?
 
-    # Determine selection mode
+    def send_box(self):
+        """Sends vertices of rectangle to navigator to generate
+           a series of waypoints"""
+        a = self.get_l(*self.clk_arr[0])
+        c = self.get_l(*self.clk_arr[1])
+        b = self.get_l(self.clk_arr[1][0], self.clk_arr[0][1])
+        d = self.get_l(self.clk_arr[0][0], self.clk_arr[1][1])
+
+        self.clear_slctns()
+        self.navigator.gen_waypnts([a, b, c, d])
+        self.rend_path()
+        self.clk_arr = []
+
     def route_selctn(self):
+        """Performed when the selection mode is changed"""
         self.clear_slctns()
         self.maparea.bind("<Button-1>", self.select_rte)
 
-    # Remove selections and clear navigator waypoints
     def clear_slctns(self):
-        self.clk_arr = []
-        self.testarr = []
-
-        for mrkr in range(len(self.mrkrs)):
-            self.maparea.delete(self.mrkrs[mrkr])
-        self.mrkrs = []
-        for line in self.lines:
-            self.maparea.delete(line)
-        self.lines = []
-
+        """Resets all waypoint/marker/route line information"""
+        for mrkr in self.mrkrs: self.maparea.delete(mrkr)
+        for line in self.lines: self.maparea.delete(line)
+        for arr in self.clearables: arr = []
         self.navigator.waypoints.clear()
         self.navigator.next_tar()
 
-    # flight functions
-    def take_off(self):
+    # Manual flight functions - these should all include setting
+    #  the controller_manual event to halt autonomous functions
+    def take_off(self): # This is the exception - not necessary
         self.drone.takeoff()
 
     def d_land(self):
@@ -472,6 +467,8 @@ class DCMainApp(object):
         self.controller_manual.set()
         self.drone.moveDown()
 
+    # Autonomous functions - these should all clear the
+    #  controller_manual event so that the functions will run
     def lnch_route(self):
         print ">>>Drone Beginning Route"
         moving = Thread(target=self.nav_waypoints, args=())
@@ -509,19 +506,11 @@ class DCMainApp(object):
     def d_test(self):
         return None
 
-    def d_calibrate_simple(self):
-        self.navigator.calibrate_drone()
-
-    def d_calibrate_all(self):
-        self.navigator.calibrate_drone(True)
-
-    def d_res_nav(self):
-        print "NoNavData: {}".format(self.drone.NoNavData)
-        self.drone.reconnectNavData()
-
     # Connection button
     def d_connect(self):
-        # Initialize drone and navigator objs
+        """Initializes drone, navigator, and camera
+           objects, draws the map and its components,
+           and makes available route-selection buttons"""
         self.drone = Drone()
         self.drone.startup()
         self.drone.reset()
@@ -535,16 +524,17 @@ class DCMainApp(object):
         self.senActivate()
         self.render_map()
         self.act_drone_loc()
-        self.rad_waypnts.config(bg= self.control_color_back,state=tk.NORMAL)
-        self.rad_roi.config(bg= self.control_color_back, state=tk.NORMAL)
+        for radio in self.radios:
+            radio.config(bg= self.control_color_back,state=tk.NORMAL)
 
     # GUI Quit button
     def quit(self):
+        """Halts autonomous movement and cleanly terminates camera thread"""
         self.controller_manual.set()
         self.camera_event.set()
-        if self.drone != None: self.drone.shutdown     # Land drone and discard drone object
         if self.camera != None: self.camera.cam_thread.join()
-        if self.camera != None: self.camera.release()   # Shutdown camera
-        self.root.destroy()     # Discard Main window object
+        if self.camera != None: self.camera.release()
+        if self.drone != None: self.drone.shutdown
+        self.root.destroy() # Discard Main window object
         print "Exiting GUI"
 
