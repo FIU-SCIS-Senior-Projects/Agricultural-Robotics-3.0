@@ -526,6 +526,7 @@ class GUI(object):
         self.act_drone_loc()
         for radio in self.radios:
             radio.config(bg= self.control_color_back,state=tk.NORMAL)
+        self.route_selctn()
 
     # GUI Quit button
     def quit(self):
