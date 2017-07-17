@@ -380,7 +380,10 @@ class GUI(object):
         coord = self.get_l(x, y)
 
         if mode == 0:   # single-waypoint
-            self.navigator.mod_waypoints([coord])
+            temp_waypoints = list(self.navigator.waypoints)[:]
+            temp_waypoints.append(coord)
+            self.clear_slctns()
+            self.navigator.mod_waypoints(temp_waypoints)
             self.rend_mrkr(x, y)
             self.rend_path()
 
